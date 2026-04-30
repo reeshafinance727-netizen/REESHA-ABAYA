@@ -47,7 +47,7 @@
         import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc, deleteDoc, updateDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         // ============================================================================
-        // 🔴 FIREBASE CONFIGURATION (GITHUB PAR HOST KARNE KE LIYE YAHAN DETAILS DALEIN) 🔴
+        // 🔴 FIREBASE CONFIGURATION 🔴
         // ============================================================================
         const fallbackConfig = {
             apiKey: "AIzaSyAj6yKpU9sD-Wmiftp6A68DzAWAZ2mamx4",
@@ -56,9 +56,9 @@
             projectId: "reesha-abaya",
             storageBucket: "reesha-abaya.firebasestorage.app",
             messagingSenderId: "291827178527",
-            appId: "1:291827178527:web:ca2f84956e3b9a48c4492a" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
+            appId: "1:291827178527:web:ce679495f769e31fc4492a" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
         };
-        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye (agar nahi chahiye to aisay hi rehnay dein)
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye
         // ============================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
@@ -69,13 +69,10 @@
             const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
             const config = configStr ? JSON.parse(configStr) : fallbackConfig;
             
-            // Only initialize if we are in testing env OR user has provided their config
             if(config.apiKey !== "YOUR_API_KEY") {
                 app = initializeApp(config);
                 auth = getAuth(app);
                 db = getFirestore(app);
-            } else {
-                console.error("⚠️ DEVELOPER: Apni Firebase keys fallbackConfig mein daalein agar aap isay Canvas ke bahar chala rahe hain.");
             }
         } catch (e) {
             console.error("Firebase initialization failed", e);
@@ -151,7 +148,6 @@
           );
         };
 
-        // --- Helper Functions ---
         const generateId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
         const formatDate = (timestamp) => {
           if (!timestamp) return 'N/A';
@@ -192,6 +188,7 @@
           const [loggedInUser, setLoggedInUser] = useState(null);
           const [toast, setToast] = useState(null);
           const [printData, setPrintData] = useState(null); 
+          const [dbError, setDbError] = useState(null); // Naya Error System
           
           const showToast = (message, type = 'success') => {
             setToast({ message, type });
@@ -203,9 +200,13 @@
             else document.documentElement.classList.remove('dark');
           }, [theme]);
 
+          // AUTHENTICATION FIX CHECK
           useEffect(() => {
             const initAuth = async () => {
-              if (!auth) return;
+              if (!auth) {
+                setDbError("Firebase App Initialize nahi hui. Kya aapne sahi se Config paste kiya tha?");
+                return;
+              }
               try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                   await signInWithCustomToken(auth, __initial_auth_token);
@@ -214,6 +215,7 @@
                 }
               } catch (error) {
                 console.error("Auth error", error);
+                setDbError("⚠️ FIREBASE ERROR: Aapki app database se connect nahi ho rahi!\n\nHal (Fix): Apne Firebase Console mein jayen -> Build -> Authentication -> Sign-in method -> wahan list mein 'Anonymous' ko dhoond kar Enable karein aur Save karein!");
               }
             };
             initAuth();
@@ -226,36 +228,43 @@
             }
           }, []);
 
+          // DATABASE RULES CHECK
           useEffect(() => {
             if (!firebaseUser || !db) return;
 
             const getCollectionRef = (colName) => collection(db, 'artifacts', sanitizedAppId, 'public', 'data', colName);
 
             setLoading(true);
+            
+            const handleDbError = (err) => {
+                console.error("DB Error", err);
+                setDbError("⚠️ FIREBASE RULES ERROR: Data save/read nahi ho raha!\n\nHal (Fix): Firebase Console -> Firestore Database -> Rules tab mein jayen aur wahan 'allow read, write: if true;' likh kar Publish karein.");
+            };
+
             const unsubInventory = onSnapshot(getCollectionRef(COLLECTIONS.INVENTORY), (snapshot) => {
               setInventory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            }, (err) => console.error("Inventory sub error", err));
+            }, handleDbError);
 
             const unsubTransactions = onSnapshot(getCollectionRef(COLLECTIONS.TRANSACTIONS), (snapshot) => {
               const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               txs.sort((a, b) => b.date - a.date);
               setTransactions(txs);
-            }, (err) => console.error("Tx sub error", err));
+            }, handleDbError);
 
             const unsubDN = onSnapshot(getCollectionRef(COLLECTIONS.DELIVERY_NOTES), (snapshot) => {
               const dns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               dns.sort((a, b) => b.date - a.date);
               setDeliveryNotes(dns);
               setLoading(false);
-            }, (err) => console.error("DN sub error", err));
+            }, handleDbError);
 
             const unsubShops = onSnapshot(getCollectionRef(COLLECTIONS.SHOPS), (snapshot) => {
               setAppShops(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            }, (err) => console.error("Shops sub error", err));
+            }, handleDbError);
 
             const unsubUsers = onSnapshot(getCollectionRef(COLLECTIONS.USERS), (snapshot) => {
               setAppUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            }, (err) => console.error("Users sub error", err));
+            }, handleDbError);
 
             return () => {
               unsubInventory();
@@ -399,7 +408,17 @@
           };
 
           if (!isAppAuthenticated) {
-            return <LoginView onLogin={handleLogin} toast={toast} />;
+            return (
+              <div className="relative">
+                {/* Global Error Banner (Login Screen) */}
+                {dbError && (
+                    <div className="absolute top-0 left-0 w-full z-50 p-4 bg-red-600 text-white font-bold text-center shadow-lg whitespace-pre-wrap">
+                        {dbError}
+                    </div>
+                )}
+                <LoginView onLogin={handleLogin} toast={toast} />
+              </div>
+            );
           }
 
           if (printData) {
@@ -475,8 +494,16 @@
           }
 
           return (
-            <div className={`flex h-screen w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200`}>
-              <div className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl flex-shrink-0">
+            <div className={`flex h-screen w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200 relative`}>
+              
+              {/* Global Error Banner (Inside App) */}
+              {dbError && (
+                  <div className="absolute top-0 left-0 w-full z-[100] p-4 bg-red-600 text-white font-bold text-center shadow-lg whitespace-pre-wrap">
+                      {dbError}
+                  </div>
+              )}
+
+              <div className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl flex-shrink-0 z-10">
                 <div className="p-6 flex items-center gap-3">
                   <div className="w-8 h-8 rounded bg-indigo-500 flex items-center justify-center text-white font-bold">AH</div>
                   <span className="text-lg font-bold text-white tracking-wide">Manager</span>
@@ -506,11 +533,11 @@
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col overflow-hidden relative">
+              <div className={`flex-1 flex flex-col overflow-hidden relative ${dbError ? 'pt-16' : ''}`}>
                 <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-8 flex-shrink-0 z-10 shadow-sm">
                   <h1 className="text-xl font-semibold capitalize">{activeTab.replace(/([A-Z])/g, ' $1').trim()}</h1>
                   <div className="flex items-center gap-4">
-                    {loading && <span className="text-sm text-slate-500 animate-pulse">Syncing Database...</span>}
+                    {loading && !dbError && <span className="text-sm text-slate-500 animate-pulse">Syncing Database...</span>}
                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-700 uppercase">
                       {loggedInUser?.username?.charAt(0) || 'A'}
                     </div>
@@ -562,7 +589,7 @@
 
           return (
             <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-              <div className="w-full max-w-md p-8 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700">
+              <div className="w-full max-w-md p-8 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 mt-12">
                 <div className="text-center mb-8">
                   <div className="w-16 h-16 bg-indigo-600 rounded-xl mx-auto flex items-center justify-center text-2xl font-bold mb-4 shadow-lg shadow-indigo-500/30">AH</div>
                   <h1 className="text-2xl font-bold tracking-tight">Abaya House</h1>
