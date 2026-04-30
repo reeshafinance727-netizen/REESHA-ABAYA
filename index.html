@@ -3,101 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REESHA ABAYA - Management System</title>
+    <title>REESHA ERP - Full Management System</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        // --- FIREBASE CONFIG ---
-        // Yahan apni Firebase details dalen agar save karna chahte hain
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
+        const { useState } = React;
 
         function App() {
-            const [items, setItems] = useState([{ code: '', style: '', qty: '' }]);
-            const [shopName, setShopName] = useState('');
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [user, setUser] = useState({ username: '', password: '' });
+            const [activeTab, setActiveTab] = useState('folders');
+            const [inventory, setInventory] = useState([
+                { id: 1, item: 'Abaya Black-01', stock: 50, shop: 'ENEM DHA' },
+                { id: 2, item: 'Abaya Blue-05', stock: 30, shop: 'ENEM LIBERTY' }
+            ]);
+            const [history, setHistory] = useState([
+                { date: '2026-04-28', action: 'Stock Added', item: 'Black-01', qty: '+10' }
+            ]);
 
-            const addItem = () => setItems([...items, { code: '', style: '', qty: '' }]);
-            
-            const handleSave = async () => {
-                try {
-                    await db.collection("deliveries").add({
-                        shopName,
-                        items,
-                        date: new Date().toISOString()
-                    });
-                    alert("Data Online Save Ho Gaya!");
-                } catch (e) {
-                    console.error("Error: ", e);
-                    alert("Save karne ke liye Firebase Config sahi karen.");
+            // Login Logic
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if(user.username === 'admin' && user.password === 'reesha786') {
+                    setIsLoggedIn(true);
+                } else {
+                    alert("Ghalat Username ya Password!");
                 }
             };
 
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+                        <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+                            <h2 className="text-3xl font-bold text-center mb-6 text-slate-800">REESHA LOGIN</h2>
+                            <div className="space-y-4">
+                                <input type="text" placeholder="Username" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" 
+                                    onChange={(e) => setUser({...user, username: e.target.value})} required />
+                                <input type="password" placeholder="Password" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" 
+                                    onChange={(e) => setUser({...user, password: e.target.value})} required />
+                                <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">Login</button>
+                            </div>
+                            <p className="text-center text-xs text-gray-400 mt-4">Username: admin | Pass: reesha786</p>
+                        </form>
+                    </div>
+                );
+            }
+
             return (
-                <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg mt-10 rounded-xl">
-                    <div className="text-center mb-8">
-                        <h1 className="text-4xl font-bold text-gray-800">REESHA ABAYA</h1>
-                        <p className="text-blue-600 font-semibold text-lg">DELIVERY NOTE SYSTEM</p>
+                <div className="min-h-screen flex flex-col md:flex-row">
+                    {/* Sidebar */}
+                    <div className="w-full md:w-64 bg-slate-800 text-white p-6 shadow-xl">
+                        <h1 className="text-2xl font-bold mb-10 text-blue-400">REESHA ERP</h1>
+                        <nav className="space-y-4">
+                            <button onClick={() => setActiveTab('folders')} className={`w-full text-left p-3 rounded-lg flex items-center ${activeTab === 'folders' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-700'}`}>
+                                <i className="fas fa-folder mr-3"></i> Shops / Folders
+                            </button>
+                            <button onClick={() => setActiveTab('inventory')} className={`w-full text-left p-3 rounded-lg flex items-center ${activeTab === 'inventory' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-700'}`}>
+                                <i className="fas fa-boxes mr-3"></i> Current Stock
+                            </button>
+                            <button onClick={() => setActiveTab('history')} className={`w-full text-left p-3 rounded-lg flex items-center ${activeTab === 'history' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-700'}`}>
+                                <i className="fas fa-history mr-3"></i> History Log
+                            </button>
+                            <button onClick={() => setIsLoggedIn(false)} className="w-full text-left p-3 rounded-lg flex items-center text-red-400 hover:bg-red-900 mt-10">
+                                <i className="fas fa-sign-out-alt mr-3"></i> Logout
+                            </button>
+                        </nav>
                     </div>
 
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700">Shop Name / Destination</label>
-                        <input 
-                            type="text" 
-                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md" 
-                            placeholder="e.g. ENEM DHA / Liberty"
-                            value={shopName}
-                            onChange={(e) => setShopName(e.target.value)}
-                        />
-                    </div>
+                    {/* Main Content Area */}
+                    <main className="flex-1 p-6 md:p-10 bg-gray-50 overflow-y-auto">
+                        {activeTab === 'folders' && (
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                                {['ENEM DHA', 'ENEM LIBERTY', 'PRODUCTION', 'WORKSHOP', 'TEXTILE UNITS'].map((name, i) => (
+                                    <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer text-center group">
+                                        <i className="fas fa-folder text-5xl text-yellow-500 mb-4 group-hover:scale-110 transition"></i>
+                                        <h3 className="font-bold text-gray-700">{name}</h3>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
-                    <table className="w-full mb-6 border-collapse border border-gray-200">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="border p-2">Product Code</th>
-                                <th className="border p-2">Style</th>
-                                <th className="border p-2">Qty</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((item, idx) => (
-                                <tr key={idx}>
-                                    <td className="border p-2"><input className="w-full outline-none" placeholder="Code" /></td>
-                                    <td className="border p-2"><input className="w-full outline-none" placeholder="Style" /></td>
-                                    <td className="border p-2"><input className="w-full outline-none" type="number" placeholder="0" /></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                        {activeTab === 'inventory' && (
+                            <div className="bg-white rounded-2xl shadow-sm p-6 overflow-x-auto">
+                                <h2 className="text-2xl font-bold mb-6 flex justify-between items-center">
+                                    Current Inventory
+                                    <button className="text-sm bg-green-500 text-white px-4 py-2 rounded-lg">+ Add Stock</button>
+                                </h2>
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="border-b bg-gray-50">
+                                            <th className="p-4">Item Name</th>
+                                            <th className="p-4">Location</th>
+                                            <th className="p-4">Stock Qty</th>
+                                            <th className="p-4">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {inventory.map(item => (
+                                            <tr key={item.id} className="border-b hover:bg-gray-50">
+                                                <td className="p-4 font-medium">{item.item}</td>
+                                                <td className="p-4 text-gray-600">{item.shop}</td>
+                                                <td className="p-4 font-bold">{item.stock}</td>
+                                                <td className="p-4"><span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">In Stock</span></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
-                    <div className="flex gap-4">
-                        <button onClick={addItem} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 font-bold">+ Add Row</button>
-                        <button onClick={handleSave} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold shadow-lg">Save to Online Database</button>
-                        <button onClick={() => window.print()} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 font-bold shadow-lg">Print PDF</button>
-                    </div>
+                        {activeTab === 'history' && (
+                            <div className="bg-white rounded-2xl shadow-sm p-6">
+                                <h2 className="text-2xl font-bold mb-6">Recent Activity History</h2>
+                                <div className="space-y-4">
+                                    {history.map((h, i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border-l-4 border-blue-500">
+                                            <div>
+                                                <p className="font-bold text-gray-800">{h.action}: {h.item}</p>
+                                                <p className="text-xs text-gray-500">{h.date}</p>
+                                            </div>
+                                            <span className="text-blue-600 font-bold">{h.qty}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
                 </div>
             );
         }
