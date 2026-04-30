@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abaya House Manager - Full Enterprise</title>
+    <title>Abaya House Manager - Full Enterprise Live</title>
     
     <!-- Scripts & Frameworks (CDN) -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -18,7 +18,8 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        const firebaseConfig = {
+        // Firebase Config with Dynamic Environment Support
+        const fallbackConfig = {
             apiKey: "AIzaSyAj6ykPU9sD-Wmiftp6A68DzAWAZ2mamx4",
             authDomain: "reesha-abaya.firebaseapp.com",
             projectId: "reesha-abaya",
@@ -27,26 +28,29 @@
             appId: "1:291827178527:web:ce679495f769e31fc4492a"
         };
 
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Global export for React
+        // Export for React
         window.firebaseDB = db;
         window.firebaseAuth = auth;
-        window.firestoreFunctions = { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc };
-        window.authFunctions = { signInAnonymously, onAuthStateChanged };
+        window.firestoreTools = { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc };
+        window.authTools = { signInAnonymously, onAuthStateChanged };
     </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        ::-webkit-scrollbar { width: 8px; }
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
+        .dark-mode { background-color: #020617; color: white; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.3s ease-out forwards; }
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -55,8 +59,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // Sanitizing App ID
-        const appId = "reesha-abaya-v1";
+        const appId = "reesha_abaya_v1";
 
         // Helper Icon Component
         const Icon = ({ name, size = 20, className = "" }) => {
@@ -64,124 +67,61 @@
             return <i data-lucide={name} style={{width: size, height: size}} className={className}></i>;
         };
 
-        // --- Logo Component ---
         const Logo = ({ size = "md" }) => (
-            <div className={`flex flex-col items-center justify-center ${size === "lg" ? "mb-8" : "mb-0"}`}>
+            <div className={`flex flex-col items-center justify-center ${size === "lg" ? "mb-6" : ""}`}>
                 <div className={`rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner ${size === "lg" ? "p-6 mb-4" : "p-3"}`}>
                     <Icon name="package" size={size === "lg" ? 48 : 24} />
                 </div>
             </div>
         );
 
-        // --- Delivery Note Template (The Complete Design) ---
         const DeliveryNoteTemplate = ({ data, isEditable, onChange, onCommit, onCancel, showMsg }) => {
-            const totalQty = data.items.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
-            
+            const totalQty = data.items.reduce((sum, it) => sum + (parseInt(it.quantity) || 0), 0);
             const handlePrint = () => {
-                const printContent = document.getElementById('printable-invoice').innerHTML;
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>Delivery Note - ${data.dnNo}</title>
-                            <script src="https://cdn.tailwindcss.com"><\/script>
-                            <style>
-                                body { background: white; padding: 40px; font-family: sans-serif; }
-                                @media print { .no-print { display: none; } }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="max-w-4xl mx-auto">${printContent}</div>
-                            <script>window.onload = () => { window.print(); window.close(); };<\/script>
-                        </body>
-                    </html>
-                `);
-                printWindow.document.close();
+                const content = document.getElementById('print-box').innerHTML;
+                const win = window.open('', '_blank');
+                win.document.write(`<html><head><script src="https://cdn.tailwindcss.com"><\/script></head><body onload="window.print();window.close()"><div class="p-10">${content}</div></body></html>`);
+                win.document.close();
             };
-
             return (
-                <div className="bg-white text-black w-full max-w-4xl mx-auto shadow-2xl relative rounded-xl overflow-hidden mb-20 animate-in">
-                    <div className={`p-4 flex justify-between items-center ${isEditable ? 'bg-slate-900 border-indigo-500' : 'bg-green-900 border-green-500'} border-b-4 text-white`}>
-                        <span className="font-bold uppercase tracking-widest text-xs">{isEditable ? 'Draft Mode' : 'Ready to Print'}</span>
+                <div className="bg-white text-black w-full max-w-4xl mx-auto shadow-2xl relative rounded-2xl overflow-hidden animate-in">
+                    <div className={`p-4 flex justify-between items-center ${isEditable ? 'bg-slate-900 border-indigo-500' : 'bg-green-900 border-green-500'} border-b-4 text-white no-print`}>
+                        <span className="font-bold text-xs uppercase tracking-widest">{isEditable ? 'Draft Mode' : 'Verified'}</span>
                         <div className="flex gap-2">
                             {isEditable ? (
-                                <>
-                                    <button onClick={onCancel} className="px-4 py-1 bg-slate-700 rounded text-xs">Cancel</button>
-                                    <button onClick={onCommit} className="px-4 py-1 bg-indigo-600 rounded text-xs font-bold">Save Record</button>
-                                </>
+                                <><button onClick={onCancel} className="px-4 py-1 bg-slate-700 rounded-lg text-xs">Cancel</button>
+                                <button onClick={onCommit} className="px-4 py-1 bg-indigo-600 rounded-lg text-xs font-black uppercase">Confirm & Save</button></>
                             ) : (
-                                <>
-                                    <button onClick={() => onChange(null)} className="px-4 py-1 bg-slate-700 rounded text-xs">Close</button>
-                                    <button onClick={handlePrint} className="px-4 py-1 bg-blue-600 rounded text-xs font-bold flex items-center gap-2"><Icon name="printer" size={14}/> Print PDF</button>
-                                </>
+                                <><button onClick={() => onChange(null)} className="px-4 py-1 bg-slate-700 rounded-lg text-xs">Close</button>
+                                <button onClick={handlePrint} className="px-4 py-1 bg-blue-600 rounded-lg text-xs font-black uppercase flex items-center gap-2"><Icon name="printer" size={14}/> Print</button></>
                             )}
                         </div>
                     </div>
-
-                    <div id="printable-invoice" className="p-10 bg-white">
-                        <div className="flex flex-col items-center mb-8">
-                            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-2">
-                                <Icon name="package" size={24} />
-                            </div>
-                            <h2 className="text-xl font-black tracking-[0.2em]">REESHA ABAYA</h2>
-                        </div>
-                        <div className="bg-[#fce4ec] border-y border-black py-1 text-center font-bold text-sm mb-6 uppercase">
-                            - {data.type === 'monthly' ? 'MONTHLY DISPATCH REPORT' : 'DELIVERY NOTE'}
-                        </div>
-                        <div className="grid grid-cols-2 text-[10px] mb-6">
-                            <div>
-                                <p><strong>Registered Name:</strong> REESHA ABAYA HOUSE</p>
-                                <p><strong>City:</strong> Lahore, Pakistan</p>
-                                <div className="mt-4">
-                                    <p className="font-bold uppercase">BILL / SHIP TO:</p>
-                                    <p className="font-black text-xs">{data.shopName}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p><strong>DN No:</strong> {data.dnNo}</p>
-                                <p><strong>Date:</strong> {data.date}</p>
-                            </div>
+                    <div id="print-box" className="p-12 bg-white">
+                        <div className="flex flex-col items-center mb-8"><Logo /><h2 className="text-2xl font-black tracking-[0.3em] mt-2">REESHA ABAYA</h2></div>
+                        <div className="bg-pink-50 border-y border-black py-2 text-center font-black tracking-widest text-sm mb-8 uppercase">- DELIVERY NOTE</div>
+                        <div className="grid grid-cols-2 text-[10px] mb-8">
+                            <div><p><strong>Business:</strong> REESHA ABAYA HOUSE</p><div className="mt-4"><p className="text-[9px] font-black text-slate-400 uppercase">BILL TO:</p><p className="text-sm font-black uppercase">{data.shopName}</p></div></div>
+                            <div className="text-right"><p><strong>DN:</strong> {data.dnNo}</p><p><strong>Date:</strong> {data.date}</p></div>
                         </div>
                         <table className="w-full border-collapse border border-black text-[10px]">
-                            <thead>
-                                <tr className="bg-[#fce4ec]">
-                                    <th className="border border-black p-1 w-8">S#</th>
-                                    <th className="border border-black p-1 text-left">Code</th>
-                                    <th className="border border-black p-1 text-left">Style</th>
-                                    <th className="border border-black p-1 w-12">Qty</th>
-                                    <th className="border border-black p-1 text-left">Remarks</th>
-                                </tr>
-                            </thead>
+                            <thead><tr className="bg-pink-50"><th className="border border-black p-1">S#</th><th className="border border-black p-1 text-left">Code</th><th className="border border-black p-1 w-16 text-center">Qty</th><th className="border border-black p-1 text-left">Remarks</th></tr></thead>
                             <tbody>
-                                {data.items.map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td className="border border-black p-1 text-center">{idx + 1}</td>
-                                        <td className="border border-black p-1 font-bold uppercase">{item.article}</td>
-                                        <td className="border border-black p-1">{item.modelStyle || '-'}</td>
-                                        <td className="border border-black p-1 text-center font-bold">{item.quantity}</td>
-                                        <td className="border border-black p-1 text-[8px]">{item.remarks || '-'}</td>
-                                    </tr>
+                                {data.items.map((it, idx) => (
+                                    <tr key={idx}><td className="border border-black p-1 text-center">{idx + 1}</td><td className="border border-black p-1 font-bold uppercase">{it.article}</td><td className="border border-black p-1 text-center font-bold">{it.quantity}</td><td className="border border-black p-1">{it.remarks || '-'}</td></tr>
                                 ))}
-                                <tr className="bg-gray-50">
-                                    <td colSpan="3" className="border border-black p-2 text-right font-bold uppercase text-[8px]">SUB TOTAL</td>
-                                    <td className="border border-black p-2 text-center font-bold text-sm">{totalQty}</td>
-                                    <td className="border border-black p-2"></td>
-                                </tr>
+                                <tr className="bg-slate-50"><td colSpan="2" className="border border-black p-2 text-right font-black">TOTAL</td><td className="border border-black p-2 text-center font-black text-sm">{totalQty}</td><td className="border border-black p-2"></td></tr>
                             </tbody>
                         </table>
-                        <div className="mt-10 border border-black p-4 h-24 text-[10px]">
-                            <p className="font-bold">Received in good condition:</p>
-                            <div className="mt-8 border-t border-black w-40">Signature</div>
-                        </div>
                     </div>
                 </div>
             );
         };
 
-        // --- Main App Logic ---
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
             const [user, setUser] = useState(null);
+            const [darkMode, setDarkMode] = useState(false);
             const [activeTab, setActiveTab] = useState('dashboard');
             const [inventory, setInventory] = useState([]);
             const [transactions, setTransactions] = useState([]);
@@ -192,300 +132,268 @@
             const [isAiLoading, setIsAiLoading] = useState(false);
             const [message, setMessage] = useState({ text: '', type: '' });
             const [loginData, setLoginData] = useState({ username: '', password: '' });
+            const [addForm, setAddForm] = useState({ article: '', quantity: '', forWhom: '' });
+            const [editingItem, setEditingItem] = useState(null);
+            const [wipeConfirm, setWipeConfirm] = useState(false);
+
+            const SHOPS = ["ABAYA HOUSE", "AL B LR", "AL-B-G10", "AL-B-GJ", "AL-B-LM", "AL-B-MUL", "AL-B-SRD", "AL-H BHARIA", "AL-H-DHA", "AL-TAIBA", "DIVINLY CRAFTED (MHZ)", "DIVINLY CRAFTED (SJ)", "ENEM", "HZ FT", "REESHA DIRECT", "TIP TOP Fabrics", "REESHA ORDER"];
 
             const db = window.firebaseDB;
-            const { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc } = window.firestoreFunctions;
-
-            const SHOPS = [
-                "ABAYA HOUSE", "AL B LR", "AL-B-G10", "AL-B-GJ", "AL-B-LM", "AL-B-MUL", "AL-B-SRD", 
-                "AL-H BHARIA", "AL-H-DHA", "AL-TAIBA", "DIVINLY CRAFTED (MHZ)", "DIVINLY CRAFTED (SJ)", 
-                "ENEM", "HZ FT", "REESHA DIRECT", "TIP TOP Fabrics", "REESHA ORDER"
-            ];
+            const { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc } = window.firestoreTools;
 
             useEffect(() => {
-                const { signInAnonymously, onAuthStateChanged } = window.authFunctions;
-                signInAnonymously(window.firebaseAuth);
+                const { signInAnonymously, onAuthStateChanged } = window.authTools;
+                const runAuth = async () => {
+                    try { await signInAnonymously(window.firebaseAuth); } catch(e) { console.error(e); }
+                };
+                runAuth();
                 return onAuthStateChanged(window.firebaseAuth, setUser);
             }, []);
 
             useEffect(() => {
                 if (!user || !db) return;
                 const getRef = (n) => collection(db, 'artifacts', appId, 'public', 'data', n);
-                
-                const unsubInv = onSnapshot(getRef('inventory'), snap => setInventory(snap.docs.map(d => ({id: d.id, ...d.data()}))));
-                const unsubTrans = onSnapshot(getRef('transactions'), snap => {
-                    const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    data.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    setTransactions(data);
-                });
+                const unsubInv = onSnapshot(getRef('inventory'), s => setInventory(s.docs.map(d => ({id:d.id, ...d.data()}))));
+                const unsubTrans = onSnapshot(getRef('transactions'), s => setTransactions(s.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b) => b.timestamp - a.timestamp)));
                 return () => { unsubInv(); unsubTrans(); };
             }, [user, db]);
 
-            const showMsg = (text, type) => {
-                setMessage({ text, type });
-                setTimeout(() => setMessage({ text: '', type: '' }), 3000);
-            };
+            const showMsg = (text, type) => { setMessage({ text, type }); setTimeout(() => setMessage({ text: '', type: '' }), 3000); };
 
             const handleLogin = (e) => {
                 e.preventDefault();
                 if (loginData.username === 'admin' && loginData.password === 'ranag3310') setIsLoggedIn(true);
-                else showMsg('Wrong credentials!', 'error');
+                else showMsg('Ghalat Password!', 'error');
             };
 
-            const getAiInsights = async () => {
-                setIsAiLoading(true);
-                const invSummary = inventory.map(i => `${i.article}: ${i.quantity}`).join(', ');
-                const prompt = `Retail Analyst prompt: Data: ${invSummary}. Give 3 Roman Urdu bullet points for stock trends. Keep it short.`;
-                
+            const handleAddStock = async (e) => {
+                e.preventDefault();
+                if(!addForm.article || !addForm.quantity) return showMsg('Details bharein', 'error');
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=`, {
-                        method: 'POST',
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const result = await res.json();
-                    setAiInsights(result.candidates?.[0]?.content?.parts?.[0]?.text || "Insights error");
-                } catch(e) { setAiInsights("AI Connection failed."); }
-                setIsAiLoading(false);
+                    const art = addForm.article.toUpperCase();
+                    const qty = parseInt(addForm.quantity);
+                    const target = addForm.forWhom || 'General Stock';
+                    const exist = inventory.find(i => i.article === art && i.forWhom === target);
+                    if(exist) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', exist.id), { quantity: exist.quantity + qty }, { merge: true });
+                    else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), { article: art, quantity: qty, forWhom: target });
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), { article: art, quantity: qty, type: 'IN', timestamp: Date.now(), date: new Date().toLocaleString(), note: `Added to ${target}` });
+                    setAddForm({ article: '', quantity: '', forWhom: '' });
+                    showMsg('Stock Added!', 'success');
+                } catch(e) { showMsg(e.message, 'error'); }
+            };
+
+            const downloadTemplate = (type) => {
+                const csv = type === 'master' ? "Article,Quantity,Target\nAB-101,50,General Stock" : "Article,Quantity\nAB-101,10";
+                const link = document.createElement("a");
+                link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+                link.download = type === 'master' ? "Master_Template.csv" : "Dispatch_Template.csv";
+                link.click();
+            };
+
+            const handleFileUpload = (e, type) => {
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    const rows = ev.target.result.split('\n').slice(1).filter(r => r.trim());
+                    if(type === 'master') {
+                        for(let row of rows) {
+                            const [art, qty, target] = row.split(',').map(s => s.trim());
+                            if(art && !isNaN(qty)) {
+                                const exist = inventory.find(i => i.article === art.toUpperCase() && i.forWhom === (target || 'General Stock'));
+                                if(exist) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', exist.id), { quantity: exist.quantity + parseInt(qty) }, { merge: true });
+                                else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), { article: art.toUpperCase(), quantity: parseInt(qty), forWhom: target || 'General Stock' });
+                            }
+                        }
+                        showMsg('Bulk Upload Done', 'success');
+                    } else {
+                        const items = rows.map(r => { const [art, q] = r.split(',').map(s => s.trim()); return { article: art.toUpperCase(), quantity: parseInt(q) }; }).filter(i => i.article && !isNaN(i.quantity));
+                        setDraftDocument({ type: 'dn', shopName: selectedShop, dnNo: `DN-${Date.now()}`, date: new Date().toLocaleDateString(), items });
+                    }
+                };
+                reader.readAsText(e.target.files[0]);
             };
 
             const commitDN = async () => {
                 try {
-                    for (const item of draftDocument.items) {
-                        const exist = inventory.find(i => i.article === item.article.toUpperCase());
-                        if (exist) {
-                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', exist.id), 
-                                { quantity: exist.quantity - item.quantity }, { merge: true });
-                        }
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), {
-                            ...item, type: 'OUT', shopName: draftDocument.shopName, dnNo: draftDocument.dnNo,
-                            timestamp: Date.now(), date: draftDocument.date
-                        });
+                    for (const it of draftDocument.items) {
+                        const exist = inventory.find(i => i.article === it.article);
+                        if (exist) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', exist.id), { quantity: exist.quantity - it.quantity }, { merge: true });
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), { ...it, type: 'OUT', shopName: draftDocument.shopName, dnNo: draftDocument.dnNo, timestamp: Date.now(), date: draftDocument.date });
                     }
-                    showMsg('Delivery Note Saved!', 'success');
                     setPrintData(draftDocument);
                     setDraftDocument(null);
+                    showMsg('DN Saved!', 'success');
                 } catch(e) { showMsg(e.message, 'error'); }
             };
 
-            const shopGroups = useMemo(() => {
-                if (!selectedShop) return {};
-                const map = {};
-                transactions.filter(t => t.shopName === selectedShop).forEach(t => {
-                    const dn = t.dnNo || 'AUTO';
-                    if (!map[dn]) map[dn] = { dnNo: dn, date: t.date, total: 0, items: [] };
-                    map[dn].items.push(t);
-                    map[dn].total += Number(t.quantity);
-                });
-                return map;
-            }, [selectedShop, transactions]);
+            const getAiInsights = async () => {
+                setIsAiLoading(true);
+                const summary = inventory.map(i => `${i.article}:${i.quantity}`).join(', ');
+                const apiKey = ""; 
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: `Analyze stock: ${summary}. Give 3 Roman Urdu business tips.` }] }] })
+                    });
+                    const d = await res.json();
+                    setAiInsights(d.candidates?.[0]?.content?.parts?.[0]?.text || "No insights available.");
+                } catch(e) { setAiInsights("AI Connection failed."); }
+                setIsAiLoading(false);
+            };
 
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-                        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border-t-8 border-indigo-600 animate-in">
-                            <Logo size="lg" />
-                            <h1 className="text-3xl font-black text-center tracking-tighter">ABAYA HOUSE</h1>
-                            <p className="text-indigo-600 font-bold uppercase text-center text-[10px] mb-8 tracking-widest">Enterprise Cloud</p>
+                    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                        <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md border-t-8 border-indigo-600 animate-in">
+                            <Logo size="lg" /><h1 className="text-3xl font-black text-center tracking-tighter text-slate-800">ABAYA HOUSE</h1>
+                            <p className="text-indigo-600 font-bold uppercase text-center text-[10px] mb-8 tracking-widest leading-none">Management Cloud</p>
                             <form onSubmit={handleLogin} className="space-y-4">
-                                <input type="text" placeholder="Username" className="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" onChange={e => setLoginData({...loginData, username: e.target.value})} />
-                                <input type="password" placeholder="Password" className="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" onChange={e => setLoginData({...loginData, password: e.target.value})} />
-                                <button className="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-indigo-700 transition-all uppercase text-xs tracking-widest">Login Terminal</button>
+                                <input type="text" placeholder="Username" className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-800" onChange={e => setLoginData({...loginData, username: e.target.value})} />
+                                <input type="password" placeholder="Password" className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-800" onChange={e => setLoginData({...loginData, password: e.target.value})} />
+                                <button className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all uppercase text-xs tracking-widest shadow-xl">Login Terminal</button>
                             </form>
-                            <p className="mt-8 text-center text-[9px] text-gray-400 font-bold uppercase border-t pt-4">Dev by MR. ABUBAKAR</p>
+                            <p className="mt-8 text-center text-[9px] text-gray-400 font-bold uppercase border-t pt-4">Developed by MR. ABUBAKAR</p>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen flex flex-col md:flex-row">
-                    {/* Draft Modal */}
-                    {draftDocument && (
-                        <div className="fixed inset-0 bg-black/90 z-[100] flex justify-center items-start overflow-y-auto pt-20 p-6 backdrop-blur-sm">
-                            <DeliveryNoteTemplate data={draftDocument} isEditable={true} onChange={setDraftDocument} onCommit={commitDN} onCancel={() => setDraftDocument(null)} showMsg={showMsg} />
+                <div className={`min-h-screen flex flex-col md:flex-row ${darkMode ? 'dark-mode' : ''}`}>
+                    {draftDocument && <div className="fixed inset-0 bg-black/90 z-[500] flex justify-center items-start overflow-y-auto pt-20 p-6 backdrop-blur-sm"><DeliveryNoteTemplate data={draftDocument} isEditable={true} onChange={setDraftDocument} onCommit={commitDN} onCancel={()=>setDraftDocument(null)} showMsg={showMsg}/></div>}
+                    {printData && <div className="fixed inset-0 bg-black/95 z-[600] flex justify-center items-start overflow-y-auto pt-20 p-6"><DeliveryNoteTemplate data={printData} isEditable={false} onChange={setPrintData} showMsg={showMsg}/></div>}
+                    {editingItem && (
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[400] backdrop-blur-md">
+                            <div className="bg-white dark:bg-slate-800 p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl border-t-8 border-indigo-600 animate-in">
+                                <h3 className="text-xl font-black mb-6 dark:text-white uppercase tracking-tighter">Adjust: {editingItem.article}</h3>
+                                <input type="number" className="w-full p-5 bg-slate-50 dark:bg-slate-900 dark:text-white border-2 rounded-2xl font-black text-5xl text-center outline-none" value={editingItem.quantity} onChange={e=>setEditingItem({...editingItem, quantity: e.target.value})} />
+                                <div className="flex gap-4 mt-10"><button onClick={()=>setEditingItem(null)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-xl font-bold uppercase text-xs">Cancel</button><button onClick={handleUpdateItem} className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs shadow-lg">Save Update</button></div>
+                            </div>
                         </div>
                     )}
-                    {/* Print View Modal */}
-                    {printData && (
-                        <div className="fixed inset-0 bg-black/95 z-[200] flex justify-center items-start overflow-y-auto pt-20 p-6">
-                            <DeliveryNoteTemplate data={printData} isEditable={false} onChange={setPrintData} showMsg={showMsg} />
-                        </div>
-                    )}
-
-                    {/* Sidebar */}
-                    <nav className="w-full md:w-64 bg-slate-900 text-white p-6 no-print flex flex-col h-screen sticky top-0">
-                        <div className="mb-10 flex items-center gap-3 bg-white/5 p-4 rounded-2xl">
-                            <Icon name="package" className="text-indigo-400" size={24}/>
-                            <h2 className="font-black text-sm uppercase">Reesha Abaya</h2>
-                        </div>
+                    <nav className="w-full md:w-64 bg-slate-900 text-white p-6 no-print flex flex-col h-screen sticky top-0 border-r border-white/5 shadow-2xl z-50">
+                        <div className="mb-10 flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/10"><Logo size="sm"/><div><h2 className="font-black text-sm uppercase leading-none tracking-tighter">Reesha Abaya</h2><p className="text-[9px] text-indigo-500 font-bold mt-1">V1.0 Enterprise</p></div></div>
                         <div className="space-y-1 flex-1">
                             {[
                                 {id:'dashboard', l:'Dashboard', i:'layout-dashboard'},
+                                {id:'add', l:'Add New Stock', i:'plus-circle'},
                                 {id:'shops', l:'Shop Ledger', i:'store'},
-                                {id:'inventory', l:'Stock List', i:'list'},
+                                {id:'inventory', l:'Current Stock', i:'list'},
                                 {id:'history', l:'Log History', i:'history'}
                             ].map(b => (
-                                <button key={b.id} onClick={() => {setActiveTab(b.id); setSelectedShop(null);}} className={`w-full text-left p-4 rounded-xl flex items-center gap-4 font-bold text-xs transition-all ${activeTab === b.id ? 'bg-indigo-600 shadow-lg' : 'hover:bg-white/5 opacity-70'}`}>
-                                    <Icon name={b.i} size={18}/> {b.l}
+                                <button key={b.id} onClick={() => {setActiveTab(b.id); setSelectedShop(null);}} className={`w-full text-left p-4 rounded-xl flex items-center gap-4 font-bold text-[11px] transition-all uppercase tracking-wider ${activeTab === b.id ? 'bg-indigo-600 shadow-lg' : 'hover:bg-white/5 opacity-60 hover:opacity-100'}`}>
+                                    <Icon name={b.i} size={16}/> {b.l}
                                 </button>
                             ))}
                         </div>
-                        <div className="pt-6 border-t border-white/10 text-center">
-                            <p className="text-[10px] text-indigo-400 font-bold">MR. ABUBAKAR</p>
-                            <button onClick={() => setIsLoggedIn(false)} className="mt-4 text-red-400 font-bold text-[10px] flex items-center gap-2 mx-auto"><Icon name="log-out" size={14}/> LOGOUT</button>
+                        <div className="pt-6 border-t border-white/10 space-y-4">
+                            <button onClick={() => setDarkMode(!darkMode)} className="w-full p-4 bg-white/5 rounded-xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest border border-white/5">{darkMode ? 'Light Mode' : 'Dark Mode'}<Icon name={darkMode ? 'sun' : 'moon'} size={16} className={darkMode ? 'text-yellow-400' : 'text-indigo-400'}/></button>
+                            <div className="text-center"><p className="text-[11px] text-indigo-400 font-black tracking-tighter uppercase">MR. ABUBAKAR</p><button onClick={() => setIsLoggedIn(false)} className="mt-4 text-red-500 font-black text-[9px] flex items-center gap-2 mx-auto uppercase transition-all hover:text-white"><Icon name="log-out" size={14}/> Sign Out</button></div>
                         </div>
                     </nav>
-
-                    <main className="flex-1 p-8 no-print overflow-y-auto h-screen">
-                        <div className="flex justify-between items-center mb-10">
-                            <h1 className="text-4xl font-black uppercase tracking-tighter">{selectedShop || activeTab}</h1>
-                            <div className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-[10px] font-black border flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> CLOUD ACTIVE
-                            </div>
-                        </div>
-
+                    <main className="flex-1 p-8 no-print overflow-y-auto h-screen dark:bg-slate-950">
+                        <div className="flex justify-between items-center mb-10"><h1 className="text-4xl font-black uppercase tracking-tighter dark:text-white">{selectedShop || activeTab}</h1><div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-4 py-2 rounded-full text-[10px] font-black border border-green-200 dark:border-green-800 flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> CLOUD ACTIVE</div></div>
                         {activeTab === 'dashboard' && (
                             <div className="space-y-10 animate-in">
-                                {/* AI Section */}
-                                <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden group shadow-2xl">
+                                <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden group shadow-2xl border-4 border-indigo-500/20">
                                     <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-all"><Icon name="sparkles" size={150} /></div>
-                                    <div className="relative z-10">
-                                        <h3 className="text-3xl font-black mb-2 flex items-center gap-3">AI Business Analyst <Icon name="sparkles" className="text-amber-400"/></h3>
-                                        <p className="text-indigo-300 text-xs font-bold uppercase mb-6 tracking-widest">Gemini Engine Analysis</p>
-                                        {!aiInsights ? (
-                                            <button onClick={getAiInsights} className="bg-amber-500 text-slate-900 px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-amber-400 shadow-xl transition-all">Generate Live Trends</button>
-                                        ) : (
-                                            <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-indigo-50 text-sm leading-relaxed whitespace-pre-wrap">{aiInsights}</div>
-                                        )}
-                                        {isAiLoading && <p className="animate-pulse text-amber-400 font-black mt-4">Analyzing Master Stock...</p>}
-                                    </div>
+                                    <div className="relative z-10"><h3 className="text-3xl font-black mb-2 flex items-center gap-3 uppercase tracking-tighter">AI Analyst <Icon name="sparkles" className="text-amber-400"/></h3>
+                                    <p className="text-indigo-300 text-xs font-bold uppercase mb-6 tracking-widest leading-none">Gemini Trend Reports</p>
+                                    {!aiInsights ? <button onClick={getAiInsights} className="bg-amber-500 text-slate-900 px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-amber-400 shadow-xl transition-all">Generate Live Reports</button> : <div className="bg-black/40 p-8 rounded-3xl border border-white/10 text-indigo-50 text-base leading-relaxed whitespace-pre-wrap">{aiInsights}</div>}
+                                    {isAiLoading && <div className="flex items-center gap-3 text-amber-400 font-black animate-pulse mt-4"><Icon name="loader" className="animate-spin"/> AI is thinking...</div>}</div>
                                 </div>
-
-                                {/* Stats */}
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {[
-                                        {l:'Total Pcs', v: inventory.reduce((a,b)=>a+b.quantity,0), i:'package', c:'indigo'},
-                                        {l:'Articles', v: inventory.length, i:'list', c:'blue'},
-                                        {l:'Low Stock', v: inventory.filter(i=>i.quantity<10).length, i:'alert-triangle', c:'red'},
-                                        {l:'Log Entries', v: transactions.length, i:'history', c:'slate'}
-                                    ].map(s => (
-                                        <div key={s.l} className="bg-white p-8 rounded-[2.5rem] shadow-sm border-b-4 border-slate-100 hover:border-indigo-500 transition-all">
-                                            <Icon name={s.i} className={`text-${s.c}-500 mb-4`} size={32}/>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.l}</p>
-                                            <h4 className="text-4xl font-black text-slate-800 tracking-tighter">{s.v}</h4>
-                                        </div>
+                                    {[ {l:'Total Stock', v: inventory.reduce((a,b)=>a+b.quantity,0), i:'package', c:'indigo'}, {l:'Articles', v: inventory.length, i:'list', c:'blue'}, {l:'Low Stock', v: inventory.filter(i=>i.quantity<10).length, i:'alert-triangle', c:'red'}, {l:'Logs', v: transactions.length, i:'history', c:'slate'}].map(s => (
+                                        <div key={s.l} className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-sm border-b-4 border-slate-100 dark:border-slate-700 hover:border-indigo-500 transition-all group"><Icon name={s.i} className={`text-${s.c}-500 mb-4`} size={32}/><p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{s.l}</p><h4 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">{s.v}</h4></div>
                                     ))}
                                 </div>
                             </div>
                         )}
-
+                        {activeTab === 'add' && (
+                            <div className="max-w-4xl space-y-12 animate-in">
+                                <div className="bg-white dark:bg-slate-800 p-12 rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-700">
+                                    <div className="flex items-center gap-4 mb-10 text-indigo-600"><Icon name="plus-circle" size={40} /><h3 className="text-3xl font-black tracking-tighter dark:text-white uppercase leading-none">Register New Stock</h3></div>
+                                    <form onSubmit={handleAddStock} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="md:col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Article ID</label><input type="text" placeholder="FZ-102" className="w-full p-5 bg-slate-50 dark:bg-slate-900 dark:text-white border-2 rounded-2xl font-black text-2xl uppercase outline-none" value={addForm.article} onChange={e=>setAddForm({...addForm, article: e.target.value})} /></div>
+                                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Qty</label><input type="number" placeholder="0" className="w-full p-5 bg-slate-50 dark:bg-slate-900 dark:text-white border-2 rounded-2xl font-black text-4xl outline-none" value={addForm.quantity} onChange={e=>setAddForm({...addForm, quantity: e.target.value})} /></div>
+                                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Target</label><input type="text" placeholder="General" className="w-full p-5 bg-slate-50 dark:bg-slate-900 dark:text-white border-2 rounded-2xl font-black text-xl outline-none" value={addForm.forWhom} onChange={e=>setAddForm({...addForm, forWhom: e.target.value})} /></div>
+                                        <button type="submit" className="md:col-span-2 bg-slate-900 dark:bg-indigo-600 text-white font-black py-6 rounded-2xl uppercase text-sm tracking-widest shadow-xl hover:bg-slate-800 transition-all">Add to Master Inventory</button>
+                                    </form>
+                                </div>
+                                <div className="bg-indigo-600 p-12 rounded-[3rem] text-white flex justify-between items-center shadow-2xl">
+                                    <div><h3 className="text-2xl font-black tracking-tighter uppercase mb-1">Bulk Excel Import</h3><p className="text-indigo-100 text-xs font-bold uppercase tracking-widest">Multi-Article Sync</p></div>
+                                    <div className="flex gap-4"><button onClick={()=>downloadTemplate('master')} className="px-6 py-4 bg-white/10 rounded-2xl border border-white/20 font-black text-[10px] uppercase">Template</button><label className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black text-[10px] uppercase cursor-pointer shadow-xl flex items-center gap-2"><Icon name="upload" size={16}/> Upload CSV <input type="file" className="hidden" accept=".csv" onChange={e=>handleFileUpload(e,'master')}/></label></div>
+                                </div>
+                            </div>
+                        )}
                         {activeTab === 'shops' && !selectedShop && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-in">
                                 {SHOPS.map(s => (
-                                    <button key={s} onClick={() => setSelectedShop(s)} className="bg-white p-8 rounded-[2rem] shadow-sm border-b-4 hover:border-indigo-600 transition-all text-left group">
-                                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all"><Icon name="folder-open" size={24}/></div>
-                                        <h4 className="font-black text-xs uppercase text-slate-800 leading-tight">{s}</h4>
-                                        <p className="text-[9px] text-slate-400 font-bold mt-2">Open Records</p>
+                                    <button key={s} onClick={() => setSelectedShop(s)} className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-sm border-b-4 border-slate-100 dark:border-slate-700 hover:border-indigo-600 transition-all text-left group">
+                                        <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all"><Icon name="folder-open" size={28}/></div>
+                                        <h4 className="font-black text-xs uppercase dark:text-white leading-tight">{s}</h4>
                                     </button>
                                 ))}
                             </div>
                         )}
-
                         {selectedShop && (
                             <div className="space-y-10 animate-in">
-                                <button onClick={() => setSelectedShop(null)} className="flex items-center gap-2 text-indigo-600 font-black uppercase text-[10px] mb-4"><Icon name="chevron-left" size={14}/> Back to Directory</button>
-                                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                                    <h4 className="text-lg font-black mb-6 uppercase tracking-widest">Manual Dispatch</h4>
+                                <button onClick={() => setSelectedShop(null)} className="flex items-center gap-2 text-indigo-600 font-black uppercase text-[10px] hover:gap-4 transition-all"><Icon name="chevron-left" size={14}/> Back</button>
+                                <div className="bg-slate-900 p-12 rounded-[3rem] text-white flex justify-between items-center border-4 border-indigo-500/20 shadow-2xl">
+                                    <h2 className="text-5xl font-black tracking-tighter uppercase">{selectedShop}</h2>
                                     <div className="flex gap-4">
-                                        <select id="articleSelect" className="flex-1 p-4 bg-slate-50 border rounded-2xl font-black text-sm uppercase">
-                                            <option value="">Select Article</option>
-                                            {inventory.filter(i=>i.quantity>0).map(i=>(<option key={i.id} value={JSON.stringify(i)}>{i.article} ({i.quantity} Pcs)</option>))}
-                                        </select>
-                                        <input id="qtyInput" type="number" placeholder="Qty" className="w-32 p-4 bg-slate-50 border rounded-2xl font-black text-center text-xl" />
-                                        <button onClick={() => {
-                                            const art = JSON.parse(document.getElementById('articleSelect').value || '{}');
-                                            const qty = parseInt(document.getElementById('qtyInput').value);
-                                            if(!art.id || isNaN(qty)) return showMsg('Incomplete details!', 'error');
-                                            setDraftDocument({
-                                                type: 'dn', shopName: selectedShop, dnNo: `DN-${Math.floor(1000+Math.random()*9000)}`,
-                                                date: new Date().toLocaleDateString(), items: [{article: art.article, quantity: qty}]
-                                            });
-                                        }} className="bg-indigo-600 text-white px-8 rounded-2xl font-black uppercase text-xs shadow-xl">Create DN</button>
+                                        <button onClick={()=>downloadTemplate('shop')} className="px-6 py-4 bg-white/10 rounded-2xl border border-white/20 font-black text-[10px] uppercase">Format</button>
+                                        <label className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-[10px] uppercase cursor-pointer hover:bg-indigo-500 hover:text-white transition-all shadow-xl flex items-center gap-2"><Icon name="file-spreadsheet" size={16}/> Import CSV <input type="file" className="hidden" accept=".csv" onChange={e=>handleFileUpload(e,'shop')}/></label>
                                     </div>
                                 </div>
-                                <div className="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
+                                <div className="bg-white dark:bg-slate-800 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm">
+                                    <h4 className="text-lg font-black mb-8 uppercase tracking-widest dark:text-white">Create Dispatch</h4>
+                                    <div className="flex flex-col md:flex-row gap-6">
+                                        <select id="sArt" className="flex-1 p-5 bg-slate-50 dark:bg-slate-900 dark:text-white border-2 rounded-2xl font-black text-sm uppercase"><option value="">Select Article</option>{inventory.filter(i=>i.quantity>0).map(i=>(<option key={i.id} value={JSON.stringify(i)}>{i.article} ({i.quantity})</option>))}</select>
+                                        <input id="sQty" type="number" placeholder="Qty" className="w-full md:w-32 p-5 bg-slate-50 dark:bg-slate-900 dark:text-white border-2 rounded-2xl font-black text-center text-4xl" />
+                                        <button onClick={() => {
+                                            const art = JSON.parse(document.getElementById('sArt').value || '{}');
+                                            const qty = parseInt(document.getElementById('sQty').value);
+                                            if(!art.id || isNaN(qty)) return showMsg('Fill all fields!', 'error');
+                                            setDraftDocument({ type: 'dn', shopName: selectedShop, dnNo: `R-${selectedShop.substring(0,3).toUpperCase()}-${Math.floor(1000+Math.random()*9000)}`, date: new Date().toLocaleDateString(), items: [{article: art.article, quantity: qty}] });
+                                        }} className="bg-indigo-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs shadow-xl tracking-widest">Create Delivery Note</button>
+                                    </div>
+                                </div>
+                                <div className="bg-white dark:bg-slate-800 rounded-[3rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
                                     <table className="w-full text-left">
-                                        <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest border-b">
-                                            <tr><th className="p-6">DN No</th><th className="p-6">Date</th><th className="p-6 text-center">Pcs</th><th className="p-6 text-center">View</th></tr>
-                                        </thead>
+                                        <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] font-black uppercase tracking-widest border-b dark:border-slate-700"><tr><th className="p-8">DN</th><th className="p-8">Date</th><th className="p-8 text-center">Qty</th><th className="p-8 text-center">Export</th></tr></thead>
                                         <tbody>
                                             {Object.values(shopGroups).map(doc => (
-                                                <tr key={doc.dnNo} className="border-b last:border-0 hover:bg-slate-50">
-                                                    <td className="p-6 font-black uppercase text-indigo-600">{doc.dnNo}</td>
-                                                    <td className="p-6 font-bold text-slate-400 text-xs">{doc.date}</td>
-                                                    <td className="p-6 text-center font-black text-xl">{doc.total}</td>
-                                                    <td className="p-6 text-center">
-                                                        <button onClick={() => setPrintData({shopName:selectedShop, dnNo:doc.dnNo, date:doc.date, items:doc.items})} className="p-3 bg-slate-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all"><Icon name="printer" size={18}/></button>
-                                                    </td>
-                                                </tr>
+                                                <tr key={doc.dnNo} className="border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"><td className="p-8 font-black uppercase text-indigo-600 text-xl">{doc.dnNo}</td><td className="p-8 font-bold text-slate-400 text-xs">{doc.date}</td><td className="p-8 text-center font-black text-4xl dark:text-white">{doc.total}</td><td className="p-8 text-center"><button onClick={() => setPrintData({shopName:selectedShop, dnNo:doc.dnNo, date:doc.date, items:doc.items})} className="p-4 bg-slate-100 dark:bg-slate-700 dark:text-white rounded-2xl hover:bg-indigo-600 transition-all"><Icon name="printer" size={24}/></button></td></tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         )}
-
                         {activeTab === 'inventory' && (
-                            <div className="bg-white rounded-[3rem] shadow-sm border overflow-hidden animate-in">
+                            <div className="bg-white dark:bg-slate-800 rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden animate-in">
                                 <table className="w-full text-left">
-                                    <thead className="bg-slate-50 text-[11px] font-black uppercase border-b">
-                                        <tr><th className="p-8">Article</th><th className="p-8 text-center">Stock</th><th className="p-8">Target</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {inventory.map(i => (
-                                            <tr key={i.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                                                <td className="p-8 font-black text-2xl uppercase tracking-tighter">{i.article}</td>
-                                                <td className="p-8 text-center font-black text-3xl text-indigo-600">{i.quantity}</td>
-                                                <td className="p-8 text-slate-400 font-bold uppercase text-[10px]">{i.forWhom || 'General'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
+                                    <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] font-black uppercase border-b dark:border-slate-700"><tr><th className="p-8">Article</th><th className="p-8 text-center">Stock</th><th className="p-8">Actions</th></tr></thead>
+                                    <tbody>{inventory.map(i => (
+                                        <tr key={i.id} className="border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900"><td className="p-8 font-black text-3xl uppercase dark:text-white">{i.article}</td><td className="p-8 text-center font-black text-4xl text-indigo-600">{i.quantity}</td><td className="p-8 text-center"><div className="flex justify-center gap-3"><button onClick={()=>setEditingItem(i)} className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><Icon name="edit" size={20}/></button><button onClick={async()=>{if(confirm('Delete?')) await deleteDoc(doc(db,'artifacts',appId,'public','data','inventory',i.id))}} className="p-4 bg-red-50 text-red-600 rounded-2xl"><Icon name="trash-2" size={20}/></button></div></td></tr>
+                                    ))}</tbody>
                                 </table>
                             </div>
                         )}
-
                         {activeTab === 'history' && (
-                            <div className="bg-white rounded-[3rem] shadow-sm border overflow-hidden animate-in">
+                            <div className="bg-white dark:bg-slate-800 rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden animate-in">
                                 <table className="w-full text-left">
-                                    <thead className="bg-slate-50 text-[10px] font-black uppercase border-b">
-                                        <tr><th className="p-8">Log Time</th><th className="p-8">Action</th><th className="p-8">Article</th><th className="p-8 text-right">Pcs</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {transactions.map((t, idx) => (
-                                            <tr key={idx} className="border-b last:border-0 hover:bg-slate-50">
-                                                <td className="p-8 text-[10px] font-bold text-slate-400">{t.date}</td>
-                                                <td className="p-8"><span className={`px-3 py-1 rounded text-[10px] font-black ${t.type==='OUT'?'bg-red-50 text-red-600':'bg-green-50 text-green-600'}`}>{t.type}</span></td>
-                                                <td className="p-8 font-black uppercase text-xl">{t.article}</td>
-                                                <td className="p-8 text-right font-black text-2xl text-indigo-600">{t.quantity}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
+                                    <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] font-black uppercase border-b dark:border-slate-700"><tr><th className="p-8">Date</th><th className="p-8">Action</th><th className="p-8">Article</th><th className="p-8 text-right">Qty</th></tr></thead>
+                                    <tbody>{transactions.map((t, idx) => (
+                                        <tr key={idx} className="border-b last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900"><td className="p-8 text-[10px] font-bold text-slate-400 uppercase leading-none">{t.date}</td><td className="p-8"><span className={`px-4 py-1 rounded-lg text-[10px] font-black uppercase ${t.type==='OUT'?'bg-red-50 text-red-600':'bg-green-50 text-green-600'}`}>{t.type}</span></td><td className="p-8 font-black uppercase text-2xl dark:text-white tracking-tighter">{t.article}</td><td className="p-8 text-right font-black text-3xl text-indigo-600">{t.quantity}</td></tr>
+                                    ))}</tbody>
                                 </table>
                             </div>
                         )}
                     </main>
-
-                    {/* Global Message */}
-                    {message.text && (
-                        <div className={`fixed bottom-10 right-10 p-6 rounded-3xl shadow-2xl z-[1000] flex items-center gap-4 border-4 animate-in ${message.type==='success'?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-200'}`}>
-                            <Icon name={message.type==='success'?'check-circle':'alert-circle'} />
-                            <p className="font-black text-sm uppercase">{message.text}</p>
-                        </div>
-                    )}
+                    {message.text && <div className={`fixed bottom-10 right-10 p-6 rounded-[2rem] shadow-2xl z-[1000] flex items-center gap-5 border-4 animate-in ${message.type==='success'?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-200'}`}><Icon name={message.type==='success'?'check-circle':'alert-circle'} className={message.type==='success'?'text-green-600':'text-red-600'} size={32}/><p className="font-black text-sm uppercase tracking-widest leading-none">{message.text}</p></div>}
                 </div>
             );
         }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
