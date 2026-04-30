@@ -16,12 +16,17 @@
 
     <style>
         body { margin: 0; padding: 0; background-color: #f8fafc; }
-        /* Custom scrollbar for better UI */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .dark ::-webkit-scrollbar-thumb { background: #334155; }
         .uppercase-input { text-transform: uppercase; }
+        
+        @media print {
+            body, html { background: white !important; margin: 0; padding: 0; height: auto; }
+            .print-hide { display: none !important; }
+            @page { margin: 15mm; }
+        }
     </style>
 </head>
 <body>
@@ -38,38 +43,42 @@
         } from 'https://esm.sh/lucide-react@0.263.1';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc, deleteDoc, updateDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         // ============================================================================
-        // 🔴 GITHUB PAGES SETUP: YAHAN APNI FIREBASE AUR GEMINI DETAILS DALAIN 🔴
+        // 🔴 FIREBASE CONFIGURATION (GITHUB PAR HOST KARNE KE LIYE YAHAN DETAILS DALEIN) 🔴
         // ============================================================================
-        const firebaseConfig = {
-            apiKey: "YOUR_FIREBASE_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+        const fallbackConfig = {
+            apiKey: "AIzaSyAj6yKpU9sD-Wmiftp6A68DzAWAZ2mamx4",
+            authDomain: "reesha-abaya.firebaseapp.com",
+            databaseURL: "https://reesha-abaya-default-rtdb.firebaseio.com",
+            projectId: "reesha-abaya",
+            storageBucket: "reesha-abaya.firebasestorage.app",
+            messagingSenderId: "291827178527",
+            appId: "1:291827178527:web:ca2f84956e3b9a48c4492a" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
         };
-        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // Agar AI Tips feature use karna hai
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye (agar nahi chahiye to aisay hi rehnay dein)
         // ============================================================================
 
-        const appId = 'abaya-house-mgr-v1';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
         const sanitizedAppId = appId.replace(/\//g, '_');
 
         let app, auth, db;
         try {
-          // Only initialize if config is provided, otherwise it will throw error
-          if(firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
-              app = initializeApp(firebaseConfig);
-              auth = getAuth(app);
-              db = getFirestore(app);
-          } else {
-              console.warn("⚠️ Please add your Firebase Config to run the database.");
-          }
+            const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+            const config = configStr ? JSON.parse(configStr) : fallbackConfig;
+            
+            // Only initialize if we are in testing env OR user has provided their config
+            if(config.apiKey !== "YOUR_API_KEY") {
+                app = initializeApp(config);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } else {
+                console.error("⚠️ DEVELOPER: Apni Firebase keys fallbackConfig mein daalein agar aap isay Canvas ke bahar chala rahe hain.");
+            }
         } catch (e) {
-          console.error("Firebase initialization failed", e);
+            console.error("Firebase initialization failed", e);
         }
 
         const COLLECTIONS = {
@@ -198,8 +207,11 @@
             const initAuth = async () => {
               if (!auth) return;
               try {
-                // Anonymous auth for GitHub pages security
-                await signInAnonymously(auth);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                  await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                  await signInAnonymously(auth);
+                }
               } catch (error) {
                 console.error("Auth error", error);
               }
@@ -369,8 +381,7 @@
           };
 
           const handleLogin = (u, p) => {
-            // Check config existence first
-            if(firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
+            if(!db) {
               showToast("Developer: Update Firebase Config in Code First!", "error");
               return;
             }
@@ -394,15 +405,6 @@
           if (printData) {
             return (
               <div className="bg-white text-black min-h-screen" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                <style>
-                  {`
-                    @media print {
-                      body, html { background: white !important; margin: 0; padding: 0; height: auto; }
-                      .print-hide { display: none !important; }
-                      @page { margin: 15mm; }
-                    }
-                  `}
-                </style>
                 <div className="max-w-4xl mx-auto p-8 print:p-0">
                   <div className="flex justify-between mb-8 print-hide">
                     <Button variant="outline" icon={X} onClick={() => setPrintData(null)}>Close & Go Back</Button>
@@ -508,7 +510,7 @@
                 <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-8 flex-shrink-0 z-10 shadow-sm">
                   <h1 className="text-xl font-semibold capitalize">{activeTab.replace(/([A-Z])/g, ' $1').trim()}</h1>
                   <div className="flex items-center gap-4">
-                    {loading && <span className="text-sm text-slate-500 animate-pulse">Syncing...</span>}
+                    {loading && <span className="text-sm text-slate-500 animate-pulse">Syncing Database...</span>}
                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-700 uppercase">
                       {loggedInUser?.username?.charAt(0) || 'A'}
                     </div>
@@ -602,7 +604,7 @@
 
           const handleGetAiTip = async () => {
             if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY") {
-              showToast("API Key is missing for AI feature", "error");
+              showToast("API Key is missing for AI feature. Update in code.", "error");
               return;
             }
             setAiLoading(true);
