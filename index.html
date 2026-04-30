@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<div id="root"></div>
+<script type="text/babel">import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, PlusCircle, ArrowUpRight, Package, List, History, 
   CheckCircle2, AlertCircle, AlertTriangle, Lock, User, LogOut, 
@@ -801,4 +806,6 @@ export default function App() {
       )}
     </div>
   );
-}
+}const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DeliveryNote/>); 
+    </script>
