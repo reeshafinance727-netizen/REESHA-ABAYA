@@ -25,7 +25,7 @@
         .dark ::-webkit-scrollbar-thumb { background: #334155; }
         .uppercase-input { text-transform: uppercase; }
         
-        /* New Premium Animations */
+        /* Premium Animations */
         @keyframes float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
@@ -89,8 +89,11 @@
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
           Upload, Download, AlertTriangle, Sparkles, X, ChevronRight, Check,
-          Settings, UserPlus, Shield, Lock, MessageSquare, BellRing, Fingerprint, Database
+          Settings, UserPlus, Shield, Lock, MessageSquare, BellRing, Fingerprint, Database,
+          PieChart as LucidePieChart, BarChart3
         } from 'https://esm.sh/lucide-react@0.263.1';
+
+        import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'https://esm.sh/recharts@2.12.0?deps=react@18,react-dom@18';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
@@ -249,6 +252,12 @@
           const showToast = (message, type = 'success') => {
             setToast({ message, type });
             setTimeout(() => setToast(null), 3000);
+          };
+
+          const hasAccess = (tabId) => {
+            if (loggedInUser?.role === 'admin') return true;
+            if (!loggedInUser?.permissions) return true;
+            return loggedInUser.permissions[tabId];
           };
 
           // Update Document Theme & Save to LocalStorage
@@ -458,9 +467,17 @@
             const userDoc = appUsers.find(user => user.username === u && user.password === p);
             if (userDoc) {
               setLoggedInUser(userDoc);
+              if (userDoc.role === 'staff' && userDoc.permissions) {
+                 const firstAllowed = ['dashboard', 'add', 'shops', 'inventory', 'history'].find(k => userDoc.permissions[k]);
+                 if (firstAllowed) setActiveTab(firstAllowed);
+                 else setActiveTab('profile'); 
+              } else {
+                 setActiveTab('dashboard');
+              }
               setIsAppAuthenticated(true);
             } else if ((appUsers.length === 0 || !userDoc) && u === 'admin' && p === 'ranag3310') {
               setLoggedInUser({ username: 'admin', role: 'admin', password: p });
+              setActiveTab('dashboard');
               setIsAppAuthenticated(true);
             } else {
               showToast("Invalid credentials", "error");
@@ -575,11 +592,11 @@
                 </div>
                 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
-                  <NavItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-                  <NavItem icon={PlusCircle} label="Master Intake" active={activeTab === 'add'} onClick={() => setActiveTab('add')} />
-                  <NavItem icon={Store} label="Shop Ledgers" active={activeTab === 'shops'} onClick={() => setActiveTab('shops')} />
-                  <NavItem icon={Package} label="Current Stock" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
-                  <NavItem icon={History} label="History Log" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+                  {hasAccess('dashboard') && <NavItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />}
+                  {hasAccess('add') && <NavItem icon={PlusCircle} label="Master Intake" active={activeTab === 'add'} onClick={() => setActiveTab('add')} />}
+                  {hasAccess('shops') && <NavItem icon={Store} label="Shop Ledgers" active={activeTab === 'shops'} onClick={() => setActiveTab('shops')} />}
+                  {hasAccess('inventory') && <NavItem icon={Package} label="Current Stock" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />}
+                  {hasAccess('history') && <NavItem icon={History} label="History Log" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />}
                   <NavItem icon={Settings} label="My Settings" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
                   {loggedInUser?.role === 'admin' && (
                     <NavItem icon={Database} label="Master DB" active={activeTab === 'adminDB'} onClick={() => setActiveTab('adminDB')} />
@@ -851,6 +868,27 @@
             return inventory.filter(i => i.quantity < 10).sort((a, b) => a.quantity - b.quantity);
           }, [inventory]);
 
+          // CHART DATA PREPARATION
+          const topStockData = useMemo(() => {
+            return [...inventory].sort((a, b) => b.quantity - a.quantity).slice(0, 5).map(item => ({
+                name: item.articleId,
+                quantity: item.quantity
+            }));
+          }, [inventory]);
+
+          const txSummaryData = useMemo(() => {
+            let inQty = 0;
+            let outQty = 0;
+            transactions.forEach(tx => {
+                if (tx.type === 'IN') inQty += tx.quantity;
+                if (tx.type === 'OUT') outQty += tx.quantity;
+            });
+            return [
+                { name: 'Stock IN (+)', value: inQty, color: '#10b981' }, // Emerald
+                { name: 'Stock OUT (-)', value: outQty, color: '#f59e0b' } // Amber
+            ];
+          }, [transactions]);
+
           const [aiQuery, setAiQuery] = useState('');
           const [aiTip, setAiTip] = useState('');
           const [aiLoading, setAiLoading] = useState(false);
@@ -926,6 +964,45 @@
                     <span className={`text-4xl font-extrabold mt-2 ${stat.color} tracking-tight`}>{stat.value}</span>
                   </Card>
                 ))}
+              </div>
+
+              {/* NEW CHARTS SECTION */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                 <Card className="p-6">
+                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3 text-slate-800 dark:text-white">
+                      <BarChart3 className="w-5 h-5 text-indigo-500" /> Top 5 Stock Levels
+                    </h2>
+                    <div className="h-[250px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={topStockData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
+                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <Tooltip cursor={{fill: 'rgba(99, 102, 241, 0.1)'}} contentStyle={{ borderRadius: '8px', backgroundColor: '#1e293b', border: 'none', color: '#fff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                                <Bar dataKey="quantity" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={45} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                 </Card>
+
+                 <Card className="p-6">
+                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3 text-slate-800 dark:text-white">
+                      <LucidePieChart className="w-5 h-5 text-indigo-500" /> Transaction Overview (Pieces)
+                    </h2>
+                    <div className="h-[250px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={txSummaryData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value">
+                                    {txSummaryData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip contentStyle={{ borderRadius: '8px', backgroundColor: '#1e293b', border: 'none', color: '#fff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} itemStyle={{ color: '#fff' }} />
+                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                 </Card>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
@@ -1599,7 +1676,28 @@
 
         const MasterDataView = ({ appShops, appUsers, getCollectionRef, showToast }) => {
           const [newShop, setNewShop] = useState('');
-          const [newUser, setNewUser] = useState({ username: '', password: '', role: 'staff' });
+          const [newUser, setNewUser] = useState({ 
+            username: '', 
+            password: '', 
+            role: 'staff',
+            permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false }
+          });
+
+          // PERMISSION LABELS (FIXED)
+          const PERMISSION_LABELS = {
+            dashboard: 'Dashboard (View Stats)',
+            add: 'Master Intake (Add Stock)',
+            shops: 'Shop Ledgers (Dispatch)',
+            inventory: 'Current Stock (Edit/Delete)',
+            history: 'History Log'
+          };
+          
+          const handlePermissionToggle = (key) => {
+            setNewUser(prev => ({
+              ...prev,
+              permissions: { ...prev.permissions, [key]: !prev.permissions[key] }
+            }));
+          };
 
           const handleAddShop = async (e) => {
             e.preventDefault();
@@ -1629,9 +1727,10 @@
                 username: newUser.username.toLowerCase(),
                 password: newUser.password,
                 role: newUser.role,
+                permissions: newUser.role === 'admin' ? null : newUser.permissions,
                 createdAt: Date.now()
               });
-              setNewUser({ username: '', password: '', role: 'staff' });
+              setNewUser({ username: '', password: '', role: 'staff', permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false } });
               showToast("New user created!");
             } catch (error) {
               showToast("Error creating user", "error");
@@ -1675,10 +1774,27 @@
                        <option value="staff">Staff (Limited Access)</option>
                        <option value="admin">Admin (Full Access)</option>
                      </select>
-                     <p className="text-xs text-slate-500 mt-2 font-medium">
-                       * Admin can access Master Data and Danger Zone. Staff cannot.
-                     </p>
                    </div>
+
+                   {newUser.role === 'staff' && (
+                     <div className="mb-6 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Staff Permissions (On/Off)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {Object.keys(PERMISSION_LABELS).map(key => (
+                            <label key={key} className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={newUser.permissions[key]} 
+                                onChange={() => handlePermissionToggle(key)}
+                                className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600"
+                              />
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{PERMISSION_LABELS[key]}</span>
+                            </label>
+                          ))}
+                        </div>
+                     </div>
+                   )}
+
                    <Button type="submit" className="w-full h-11 text-base font-bold bg-emerald-600 hover:bg-emerald-700">Create User</Button>
                  </form>
                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
@@ -1686,9 +1802,18 @@
                      <div key={user.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
                        <div>
                          <span className="font-extrabold text-slate-800 dark:text-slate-200 block mb-1">{user.username}</span>
-                         <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600'}`}>
-                           {user.role}
-                         </span>
+                         <div className="flex flex-wrap items-center gap-2 mt-1">
+                           <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600'}`}>
+                             {user.role}
+                           </span>
+                           {user.role === 'staff' && user.permissions && (
+                             <div className="flex gap-1 flex-wrap">
+                               {Object.entries(user.permissions).filter(([k, v]) => v).map(([k]) => (
+                                 <span key={k} className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">{k}</span>
+                               ))}
+                             </div>
+                           )}
+                         </div>
                        </div>
                        <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                      </div>
