@@ -216,8 +216,12 @@
           const [isAppAuthenticated, setIsAppAuthenticated] = useState(false);
           const [firebaseUser, setFirebaseUser] = useState(null);
           
-          // Dark Mode Fix: Saved in localStorage
-          const [theme, setTheme] = useState(() => localStorage.getItem('abaya_theme') || 'dark');
+          const [theme, setTheme] = useState(() => {
+            if (typeof window !== 'undefined' && localStorage) {
+               return localStorage.getItem('abaya_theme') || 'dark';
+            }
+            return 'dark';
+          });
           const [activeTab, setActiveTab] = useState('dashboard');
           
           const [inventory, setInventory] = useState([]);
@@ -241,10 +245,10 @@
           useEffect(() => {
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');
-                localStorage.setItem('abaya_theme', 'dark');
+                if (typeof window !== 'undefined' && localStorage) localStorage.setItem('abaya_theme', 'dark');
             } else {
                 document.documentElement.classList.remove('dark');
-                localStorage.setItem('abaya_theme', 'light');
+                if (typeof window !== 'undefined' && localStorage) localStorage.setItem('abaya_theme', 'light');
             }
           }, [theme]);
 
@@ -442,7 +446,6 @@
             }
 
             const userDoc = appUsers.find(user => user.username === u && user.password === p);
-            // Modified fallback login check: allows "admin"/"ranag3310" even if database hasn't loaded perfectly yet.
             if (userDoc) {
               setLoggedInUser(userDoc);
               setIsAppAuthenticated(true);
@@ -1490,4 +1493,18 @@
                            {user.role}
                          </span>
                        </div>
-                       <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/
+                       <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                     </div>
+                   ))}
+                   {appUsers.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">Only fallback admin exists. Create users here.</p>}
+                 </div>
+               </Card>
+             </div>
+          );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
