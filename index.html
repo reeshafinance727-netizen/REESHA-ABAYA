@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management App for Abaya House</title>
     
+    <!-- Tab Icon (Favicon) Add kiya gaya hai -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -62,6 +65,13 @@
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
+        /* Fingerprint Scanner Animation */
+        @keyframes scan {
+            0%, 100% { top: 0%; opacity: 0; }
+            10%, 90% { opacity: 1; }
+            50% { top: 100%; }
+        }
+
         @media print {
             body, html { background: white !important; margin: 0; padding: 0; height: auto; }
             .print-hide { display: none !important; }
@@ -79,7 +89,7 @@
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
           Upload, Download, AlertTriangle, Sparkles, X, ChevronRight, Check,
-          Settings, UserPlus, Shield, Lock, Gem, MessageSquare, BellRing
+          Settings, UserPlus, Shield, Lock, Gem, MessageSquare, BellRing, Fingerprint
         } from 'https://esm.sh/lucide-react@0.263.1';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -646,6 +656,16 @@
         const LoginView = ({ onLogin, toast }) => {
           const [username, setUsername] = useState('');
           const [password, setPassword] = useState('');
+          const [isScanning, setIsScanning] = useState(false);
+
+          const handleFingerprint = () => {
+            setIsScanning(true);
+            // Simulate fingerprint scan delay
+            setTimeout(() => {
+              setIsScanning(false);
+              onLogin('admin', 'ranag3310'); // Auto login as admin using fingerprint
+            }, 1500);
+          };
 
           return (
             <div 
@@ -662,7 +682,7 @@
               <div className="particle w-2.5 h-2.5 left-[90%] z-0" style={{ animationDuration: '10s', animationDelay: '2s' }}></div>
 
               <div className="w-full max-w-md p-10 bg-slate-900/50 backdrop-blur-2xl rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 mt-12 animate-in fade-in zoom-in-95 duration-700 relative z-10 hover:border-white/30 transition-all hover:shadow-[0_0_60px_rgba(99,102,241,0.3)] hover:-translate-y-2">
-                <div className="text-center mb-10">
+                <div className="text-center mb-8">
                   <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center text-white mb-6 shadow-[0_0_30px_rgba(99,102,241,0.6)] animate-float hover:scale-110 transition-transform duration-500">
                     <Gem className="w-10 h-10 animate-pulse" />
                   </div>
@@ -677,9 +697,25 @@
                     <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                   </div>
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
-                    <Button type="submit" className="w-full mt-8 py-3.5 text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-none shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60 transition-all">Login to Portal</Button>
+                    <Button type="submit" className="w-full mt-4 py-3.5 text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-none shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60 transition-all">Login to Portal</Button>
                   </div>
                 </form>
+                
+                {/* Fingerprint Quick Login Feature */}
+                <div className="mt-8 flex flex-col items-center border-t border-slate-700/50 pt-6 animate-in fade-in slide-in-from-bottom-6 duration-500 delay-500 fill-mode-both">
+                  <p className="text-[10px] text-slate-400 mb-3 uppercase tracking-widest font-semibold">Or tap to scan fingerprint</p>
+                  <button
+                    type="button"
+                    onClick={handleFingerprint}
+                    disabled={isScanning}
+                    className={`relative flex items-center justify-center w-16 h-16 rounded-full border-2 transition-all duration-300 overflow-hidden ${isScanning ? 'border-indigo-500 bg-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.6)]' : 'border-slate-600 hover:border-indigo-400 hover:bg-indigo-500/10'}`}
+                  >
+                    <Fingerprint className={`w-8 h-8 ${isScanning ? 'text-indigo-400 animate-pulse' : 'text-slate-400'}`} />
+                    {isScanning && <div className="absolute top-0 left-0 w-full h-1 bg-indigo-400 shadow-[0_0_10px_#818cf8] animate-[scan_1.5s_ease-in-out_infinite]"></div>}
+                  </button>
+                  {isScanning && <p className="text-xs text-indigo-300 font-medium mt-3 animate-pulse">Scanning...</p>}
+                </div>
+
                 {toast && (
                   <div className="mt-6 p-4 bg-red-500/20 text-red-100 text-sm font-bold text-center rounded-xl border border-red-500/40 animate-in slide-in-from-bottom-2 backdrop-blur-md">
                     {toast.message}
