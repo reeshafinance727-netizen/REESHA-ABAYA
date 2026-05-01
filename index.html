@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management App for Abaya House</title>
     
-    <!-- Mobile App Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0f172a">
-
     <!-- Tab Icon (Favicon) Package wala add kar diya gaya hai -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
     
@@ -95,7 +90,7 @@
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
           Upload, Download, AlertTriangle, Sparkles, X, ChevronRight, Check,
           Settings, UserPlus, Shield, Lock, MessageSquare, BellRing, Fingerprint, Database,
-          PieChart as LucidePieChart, BarChart3, Smartphone
+          PieChart as LucidePieChart, BarChart3
         } from 'https://esm.sh/lucide-react@0.263.1';
 
         import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'https://esm.sh/recharts@2.12.0?deps=react@18,react-dom@18';
@@ -103,42 +98,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc, deleteDoc, updateDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-        // ============================================================================
-        // 📱 MOBILE APP (PWA) VIRTUAL REGISTRATION
-        // ============================================================================
-        try {
-            const manifestData = {
-              "name": "Abaya House Inventory",
-              "short_name": "Abaya House",
-              "start_url": ".",
-              "display": "standalone",
-              "background_color": "#0f172a",
-              "theme_color": "#4f46e5",
-              "icons": [{
-                "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>",
-                "sizes": "192x192",
-                "type": "image/svg+xml",
-                "purpose": "any maskable"
-              }]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(manifestBlob);
-            document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${manifestURL}">`);
-            
-            if ('serviceWorker' in navigator) {
-                const swCode = `
-                  self.addEventListener('install', (e) => self.skipWaiting());
-                  self.addEventListener('activate', (e) => self.clients.claim());
-                  self.addEventListener('fetch', (e) => {});
-                `;
-                const swBlob = new Blob([swCode], {type: 'application/javascript'});
-                const swUrl = URL.createObjectURL(swBlob);
-                navigator.serviceWorker.register(swUrl).catch(() => {});
-            }
-        } catch(e) {}
-        // ============================================================================
-
 
         // ============================================================================
         // 🔴 FIREBASE CONFIGURATION 🔴
@@ -288,31 +247,9 @@
           const [loggedInUser, setLoggedInUser] = useState(null);
           const [toast, setToast] = useState(null);
           const [printData, setPrintData] = useState(null); 
-          const [printReport, setPrintReport] = useState(null); // NEW: State for general PDF reports
+          const [printReport, setPrintReport] = useState(null); 
           const [dbError, setDbError] = useState(null); 
           
-          // --- PWA Install State ---
-          const [deferredPrompt, setDeferredPrompt] = useState(null);
-
-          useEffect(() => {
-            const handleBeforeInstallPrompt = (e) => {
-              e.preventDefault();
-              setDeferredPrompt(e);
-            };
-            window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-            return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-          }, []);
-
-          const handleInstallApp = async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-              setDeferredPrompt(null);
-            }
-          };
-          // -------------------------
-
           const showToast = (message, type = 'success') => {
             setToast({ message, type });
             setTimeout(() => setToast(null), 3000);
@@ -568,7 +505,7 @@
                 <div className="max-w-4xl mx-auto p-8 print:p-0">
                   <div className="flex justify-between mb-8 print-hide">
                     <Button variant="outline" icon={X} onClick={() => setPrintData(null)}>Close & Go Back</Button>
-                    <Button icon={Printer} onClick={() => { window.focus(); window.print(); }}>Save as PDF / Print</Button>
+                    <Button icon={Printer} onClick={() => { window.focus(); window.print(); }}>Print Document / Save PDF</Button>
                   </div>
                   
                   <div className="border border-gray-300 p-8 print:border-none print:p-0">
@@ -634,7 +571,6 @@
             );
           }
 
-          // Print Report Overlay for Inventory and History
           if (printReport) {
             return (
               <div className="bg-white text-black min-h-screen" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
@@ -757,13 +693,6 @@
                 </nav>
 
                 <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-                  {/* INSTALL PWA BUTTON */}
-                  {deferredPrompt && (
-                    <button onClick={handleInstallApp} className="flex items-center justify-center gap-2 w-full px-4 py-2.5 mb-3 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 rounded-lg shadow-lg shadow-emerald-500/30 transition-all hover:scale-105">
-                      <Smartphone className="w-4 h-4" /> Install Mobile App
-                    </button>
-                  )}
-                  
                   <div className="flex items-center justify-between mb-4 px-2">
                     <span className="text-sm font-medium">Dark Mode</span>
                     <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full hover:bg-slate-700 bg-slate-800 transition-all hover:scale-110 shadow-sm border border-slate-700">
@@ -1460,4 +1389,541 @@
         const ShopDetailView = ({ shop, onBack, inventory, onDispatch, deliveryNotes, showToast, onPrint }) => {
           const [dispatchMode, setDispatchMode] = useState('manual');
           const [dispatchItems, setDispatchItems] = useState([{ articleId: '', quantity: '' }]);
-          const [csvFile, setCsvFile]
+          const [csvFile, setCsvFile] = useState(null);
+          const [remarks, setRemarks] = useState('');
+          const [isProcessing, setIsProcessing] = useState(false);
+          
+          const shopDNs = useMemo(() => deliveryNotes.filter(dn => dn.shopName === shop), [deliveryNotes, shop]);
+
+          const handleAddItemRow = () => setDispatchItems([...dispatchItems, { articleId: '', quantity: '' }]);
+          const handleRemoveItemRow = (index) => {
+            const newItems = [...dispatchItems];
+            newItems.splice(index, 1);
+            setDispatchItems(newItems);
+          };
+          const handleItemChange = (index, field, value) => {
+            const newItems = [...dispatchItems];
+            newItems[index][field] = value.toUpperCase();
+            setDispatchItems(newItems);
+          };
+
+          const handleDispatchSubmit = async (e) => {
+            e.preventDefault();
+            
+            let validItems = [];
+            if (dispatchMode === 'manual') {
+              validItems = dispatchItems.filter(i => i.articleId && i.quantity > 0);
+              if (validItems.length === 0) return;
+            } else {
+              if (!csvFile) {
+                showToast("Please upload a CSV file first", "error");
+                return;
+              }
+              try {
+                const text = await csvFile.text();
+                const data = parseBasicCSV(text);
+                if (data.length === 0) throw new Error("Empty or invalid CSV");
+                
+                for (const row of data) {
+                  const id = row['articleid'] || row['article'] || row['id'];
+                  const qty = parseInt(row['quantity'] || row['qty']);
+                  if (id && qty > 0) {
+                    validItems.push({ articleId: id.toUpperCase(), quantity: qty });
+                  }
+                }
+                if (validItems.length === 0) throw new Error("No valid items found in CSV");
+              } catch (err) {
+                showToast(err.message, "error");
+                return;
+              }
+            }
+            
+            setIsProcessing(true);
+            const success = await onDispatch(shop, validItems, remarks || (dispatchMode === 'csv' ? 'Bulk CSV Dispatch' : ''));
+            if (success) {
+              if (dispatchMode === 'manual') {
+                setDispatchItems([{ articleId: '', quantity: '' }]);
+              } else {
+                setCsvFile(null);
+                document.getElementById('dispatch-csv-upload').value = '';
+              }
+              setRemarks('');
+            }
+            setIsProcessing(false);
+          };
+
+          const downloadDispatchTemplate = () => {
+            const csvContent = "data:text/csv;charset=utf-8,ArticleID,Quantity\nAB-001,5\nAB-002,10\n";
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `dispatch_template_${shop.replace(/\s+/g, '_').toLowerCase()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          return (
+            <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
+              <div className="flex items-center gap-4 mb-4">
+                <Button variant="outline" onClick={onBack} className="px-4 py-2 hover:bg-slate-200 dark:hover:bg-slate-700">← Back to Shops</Button>
+                <h2 className="text-3xl font-extrabold flex items-center gap-3 text-slate-800 dark:text-white">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
+                    <Store className="w-6 h-6 text-indigo-600 dark:text-indigo-400" /> 
+                  </div>
+                  {shop} Ledger
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="p-6">
+                  <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">New Dispatch (DN)</h3>
+                    <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-lg shadow-inner">
+                      <button type="button" onClick={() => setDispatchMode('manual')} className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all duration-200 ${dispatchMode === 'manual' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Manual</button>
+                      <button type="button" onClick={() => setDispatchMode('csv')} className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all duration-200 ${dispatchMode === 'csv' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>CSV Upload</button>
+                    </div>
+                  </div>
+                  
+                  <form onSubmit={handleDispatchSubmit} className="space-y-5 animate-in fade-in duration-300">
+                    {dispatchMode === 'manual' ? (
+                      <>
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                          {dispatchItems.map((item, index) => (
+                            <div key={index} className="flex gap-3 items-start bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 transition-all hover:border-indigo-300 dark:hover:border-indigo-600/50">
+                              <div className="flex-1">
+                                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Article ID</label>
+                                 <input 
+                                  list={`inv-list-${shop}`}
+                                  value={item.articleId} 
+                                  onChange={(e) => handleItemChange(index, 'articleId', e.target.value)}
+                                  placeholder="Search..."
+                                  required={dispatchMode === 'manual'}
+                                  className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg bg-white dark:bg-slate-900 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 transition-all"
+                                />
+                                <datalist id={`inv-list-${shop}`}>
+                                  {inventory.map(inv => <option key={inv.id} value={inv.articleId}>Qty: {inv.quantity}</option>)}
+                                </datalist>
+                              </div>
+                              <div className="w-28">
+                                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Qty</label>
+                                 <input 
+                                  type="number"
+                                  value={item.quantity} 
+                                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                  placeholder="0"
+                                  required={dispatchMode === 'manual'}
+                                  className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg bg-white dark:bg-slate-900 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 transition-all"
+                                />
+                              </div>
+                              {dispatchItems.length > 1 && (
+                                <button type="button" onClick={() => handleRemoveItemRow(index)} className="mt-7 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
+                                  <X className="w-5 h-5" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <Button variant="outline" onClick={handleAddItemRow} className="w-full text-sm font-bold border-dashed border-2 border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 py-3">
+                          <PlusCircle className="w-4 h-4 mr-2" /> Add Another Article
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 text-sm">
+                          <p className="text-slate-600 dark:text-slate-400 mb-3 font-medium">Upload a CSV file to dispatch multiple items. Ensure headers are exactly <strong>ArticleID</strong> and <strong>Quantity</strong>.</p>
+                          <Button type="button" variant="outline" onClick={downloadDispatchTemplate} className="w-full text-xs py-2.5 font-bold border-dashed hover:bg-white dark:hover:bg-slate-800">
+                            <Download className="w-4 h-4 mr-2" /> Download Template
+                          </Button>
+                        </div>
+                        <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl p-8 text-center hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all duration-300 relative group cursor-pointer">
+                           <input 
+                            id="dispatch-csv-upload"
+                            type="file" 
+                            accept=".csv" 
+                            onChange={e => setCsvFile(e.target.files[0])}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                          />
+                          <div className="relative z-10 transform transition-transform group-hover:scale-110 duration-300">
+                            <FileText className="w-12 h-12 text-indigo-400 mx-auto mb-3 drop-shadow-sm" />
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                              {csvFile ? csvFile.name : "Click or drag CSV file here"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2">
+                        <Input label="General Remarks (Optional)" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder={dispatchMode === 'csv' ? "e.g. Bulk Dispatch from Warehouse" : "e.g. Urgent request"} className="mb-0" />
+                    </div>
+                    
+                    <Button type="submit" disabled={isProcessing || (dispatchMode === 'csv' && !csvFile)} className="w-full mt-2 h-12 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30">
+                      {isProcessing ? 'Saving...' : 'Save Delivery Note'}
+                    </Button>
+                  </form>
+                </Card>
+
+                <Card className="p-6 flex flex-col">
+                  <h3 className="text-xl font-bold mb-6 border-b border-slate-100 dark:border-slate-700 pb-4 text-slate-800 dark:text-white">Delivery Note History</h3>
+                  <div className="flex-1 overflow-y-auto max-h-[500px] pr-2">
+                     {shopDNs.length === 0 ? (
+                       <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3 opacity-60">
+                           <FileText className="w-12 h-12" />
+                           <span className="text-sm font-medium">No DNs generated for this shop yet.</span>
+                       </div>
+                     ) : (
+                       <div className="space-y-4">
+                         {shopDNs.map((dn, i) => (
+                           <div key={dn.id} className="p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 transition-all duration-300 bg-slate-50 dark:bg-slate-800/40 flex justify-between items-center shadow-sm hover:shadow-md animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                             <div>
+                               <h4 className="font-extrabold text-indigo-600 dark:text-indigo-400 text-base mb-1">{dn.dnNumber}</h4>
+                               <p className="text-xs font-semibold text-slate-500">{formatDate(dn.date)} • <span className="text-slate-700 dark:text-slate-300">{dn.totalPieces} pieces</span></p>
+                             </div>
+                             <div className="flex items-center gap-3">
+                               <span className="text-xs font-bold px-2.5 py-1.5 bg-slate-200/80 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300">
+                                 {dn.items.length} Articles
+                               </span>
+                               <button onClick={() => onPrint(dn)} className="flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 px-3.5 py-2 rounded-lg transition-transform hover:scale-105 shadow-md shadow-indigo-500/20">
+                                 <Printer className="w-4 h-4" /> Print
+                               </button>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                     )}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          );
+        };
+
+        const InventoryView = ({ inventory, getCollectionRef, showToast, onPrint }) => {
+          const [searchTerm, setSearchTerm] = useState('');
+          const [editModal, setEditModal] = useState({ isOpen: false, item: null });
+          const [editQty, setEditQty] = useState('');
+
+          const filtered = useMemo(() => {
+            return inventory.filter(i => 
+              i.articleId.toLowerCase().includes(searchTerm.toLowerCase()) || 
+              (i.style && i.style.toLowerCase().includes(searchTerm.toLowerCase()))
+            ).sort((a, b) => a.articleId.localeCompare(b.articleId));
+          }, [inventory, searchTerm]);
+
+          const handleDelete = async (id) => {
+            if (!window.confirm("Delete this article from master inventory?")) return;
+            try {
+              await deleteDoc(doc(getCollectionRef(COLLECTIONS.INVENTORY), id));
+              showToast("Article deleted");
+            } catch (e) {
+              showToast("Error deleting", "error");
+            }
+          };
+
+          const handleUpdate = async () => {
+            if (!editModal.item || editQty === '') return;
+            try {
+              await updateDoc(doc(getCollectionRef(COLLECTIONS.INVENTORY), editModal.item.id), {
+                quantity: parseInt(editQty),
+                lastUpdated: Date.now()
+              });
+              showToast("Quantity updated");
+              setEditModal({ isOpen: false, item: null });
+            } catch (e) {
+              showToast("Error updating", "error");
+            }
+          };
+
+          return (
+            <div className="animate-in fade-in duration-500">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Current Stock Table</h2>
+                <div className="flex w-full md:w-auto gap-3">
+                  <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search articles..." className="mb-0 flex-1 md:w-64" />
+                  <Button onClick={() => onPrint(filtered)} variant="outline" className="h-[42px] bg-white dark:bg-slate-800 border-indigo-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700">
+                    <Printer className="w-4 h-4 mr-2" /> Save PDF
+                  </Button>
+                </div>
+              </div>
+
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto max-h-[70vh]">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                      <tr>
+                        <th className="px-6 py-4 font-bold tracking-wider">Article ID</th>
+                        <th className="px-6 py-4 font-bold tracking-wider">Style / Color</th>
+                        <th className="px-6 py-4 text-center font-bold tracking-wider">Quantity</th>
+                        <th className="px-6 py-4 font-bold tracking-wider">Last Intake/Target</th>
+                        <th className="px-6 py-4 text-right font-bold tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map(item => (
+                        <tr key={item.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors duration-200">
+                          <td className="px-6 py-4 font-extrabold text-slate-900 dark:text-slate-100 text-base">{item.articleId}</td>
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium">{item.style || '-'}</td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`px-4 py-1.5 rounded-lg font-bold text-sm shadow-sm ${item.quantity < 10 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-200 dark:border-red-800' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600'}`}>
+                              {item.quantity}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-slate-500 font-medium">{item.target || '-'}</td>
+                          <td className="px-6 py-4 text-right flex justify-end gap-2">
+                            <button onClick={() => { setEditModal({ isOpen: true, item }); setEditQty(item.quantity.toString()); }} className="p-2.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 rounded-lg transition-all hover:scale-105">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(item.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/30 dark:hover:bg-red-900/60 rounded-lg transition-all hover:scale-105">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {filtered.length === 0 && (
+                        <tr><td colSpan="5" className="px-6 py-16 text-center text-slate-400 text-lg font-medium">No items found in inventory.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              <Modal 
+                isOpen={editModal.isOpen} 
+                onClose={() => setEditModal({ isOpen: false, item: null })}
+                title={`Edit Stock: ${editModal.item?.articleId}`}
+                footer={<><Button variant="outline" onClick={() => setEditModal({ isOpen: false, item: null })}>Cancel</Button><Button onClick={handleUpdate} className="bg-indigo-600 hover:bg-indigo-700 font-bold">Save Changes</Button></>}
+              >
+                <div className="py-5">
+                  <Input label="New Quantity" type="number" value={editQty} onChange={e => setEditQty(e.target.value)} className="mb-0" />
+                </div>
+              </Modal>
+            </div>
+          );
+        };
+
+        const HistoryView = ({ transactions, onPrint }) => {
+          const [filter, setFilter] = useState('ALL');
+          
+          const filteredTxs = useMemo(() => {
+            if (filter === 'ALL') return transactions;
+            return transactions.filter(t => t.type === filter);
+          }, [transactions, filter]);
+
+          return (
+            <div className="animate-in fade-in duration-500">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Comprehensive Ledger</h2>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex gap-1.5 bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-xl shadow-inner">
+                    {['ALL', 'IN', 'OUT'].map(f => (
+                      <button 
+                        key={f} 
+                        onClick={() => setFilter(f)}
+                        className={`px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${filter === f ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                  <Button onClick={() => onPrint(filteredTxs)} variant="outline" className="h-[42px] bg-white dark:bg-slate-800 border-indigo-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700">
+                    <Printer className="w-4 h-4 mr-2" /> Save PDF
+                  </Button>
+                </div>
+              </div>
+
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto max-h-[75vh]">
+                  <table className="w-full text-sm text-left">
+                     <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                      <tr>
+                        <th className="px-6 py-4 font-bold tracking-wider">Date & Time</th>
+                        <th className="px-6 py-4 font-bold tracking-wider">Type</th>
+                        <th className="px-6 py-4 font-bold tracking-wider">Article</th>
+                        <th className="px-6 py-4 text-center font-bold tracking-wider">Qty</th>
+                        <th className="px-6 py-4 font-bold tracking-wider">Destination / Remarks</th>
+                        <th className="px-6 py-4 text-right font-bold tracking-wider">Reference DN</th>
+                      </tr>
+                    </thead>
+                    <tbody className="font-mono text-[13px]">
+                      {filteredTxs.map(tx => (
+                        <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors duration-200">
+                          <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-sans font-medium">{formatDate(tx.date)}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1.5 rounded-md font-bold font-sans text-xs tracking-wider shadow-sm ${tx.type === 'IN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50'}`}>
+                              {tx.type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-200 text-[14px]">{tx.articleId}</td>
+                          <td className="px-6 py-4 text-center font-bold text-[14px]">{tx.type === 'IN' ? '+' : '-'}{tx.quantity}</td>
+                          <td className="px-6 py-4 font-sans truncate max-w-[250px] font-medium text-slate-600 dark:text-slate-300">{tx.shopName || tx.remarks || '-'}</td>
+                          <td className="px-6 py-4 text-right font-bold text-indigo-500 dark:text-indigo-400">{tx.dnNumber || '-'}</td>
+                        </tr>
+                      ))}
+                      {filteredTxs.length === 0 && (
+                        <tr><td colSpan="6" className="px-6 py-16 text-center text-slate-400 text-lg font-sans font-medium">No transaction history found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+          );
+        };
+
+        const MasterDataView = ({ appShops, appUsers, getCollectionRef, showToast }) => {
+          const [newShop, setNewShop] = useState('');
+          const [newUser, setNewUser] = useState({ 
+            username: '', 
+            password: '', 
+            role: 'staff',
+            permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false }
+          });
+
+          // PERMISSION LABELS (FIXED)
+          const PERMISSION_LABELS = {
+            dashboard: 'Dashboard (View Stats)',
+            add: 'Master Intake (Add Stock)',
+            shops: 'Shop Ledgers (Dispatch)',
+            inventory: 'Current Stock (Edit/Delete)',
+            history: 'History Log'
+          };
+          
+          const handlePermissionToggle = (key) => {
+            setNewUser(prev => ({
+              ...prev,
+              permissions: { ...prev.permissions, [key]: !prev.permissions[key] }
+            }));
+          };
+
+          const handleAddShop = async (e) => {
+            e.preventDefault();
+            if(!newShop.trim()) return;
+            try {
+              await setDoc(doc(getCollectionRef(COLLECTIONS.SHOPS), newShop.trim().toUpperCase()), {
+                name: newShop.trim().toUpperCase(),
+                createdAt: Date.now()
+              });
+              setNewShop('');
+              showToast("New shop created!");
+            } catch (error) {
+              showToast("Error creating shop", "error");
+            }
+          };
+
+          const handleDeleteShop = async (id) => {
+            if(!window.confirm("Delete this shop? Delivery Notes history will remain intact, but shop will be removed from lists.")) return;
+            await deleteDoc(doc(getCollectionRef(COLLECTIONS.SHOPS), id));
+          };
+
+          const handleAddUser = async (e) => {
+            e.preventDefault();
+            if(!newUser.username || !newUser.password) return;
+            try {
+              await setDoc(doc(getCollectionRef(COLLECTIONS.USERS), newUser.username.toLowerCase()), {
+                username: newUser.username.toLowerCase(),
+                password: newUser.password,
+                role: newUser.role,
+                permissions: newUser.role === 'admin' ? null : newUser.permissions,
+                createdAt: Date.now()
+              });
+              setNewUser({ username: '', password: '', role: 'staff', permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false } });
+              showToast("New user created!");
+            } catch (error) {
+              showToast("Error creating user", "error");
+            }
+          };
+
+          const handleDeleteUser = async (id) => {
+            if(!window.confirm("Delete this user? They will lose access to the portal.")) return;
+            await deleteDoc(doc(getCollectionRef(COLLECTIONS.USERS), id));
+          };
+
+          return (
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
+               <Card className="p-6">
+                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><Store className="w-5 h-5 text-indigo-500" /> Manage Shops</h2>
+                 <form onSubmit={handleAddShop} className="flex gap-3 mb-6">
+                   <div className="flex-1">
+                     <Input value={newShop} onChange={e => setNewShop(e.target.value)} placeholder="New Shop Name..." className="mb-0" required />
+                   </div>
+                   <Button type="submit" className="font-bold bg-indigo-600 hover:bg-indigo-700 h-[42px]">Add Shop</Button>
+                 </form>
+                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                   {appShops.map((shop, i) => (
+                     <div key={shop.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                       <span className="font-extrabold text-slate-700 dark:text-slate-200">{shop.name}</span>
+                       <button onClick={() => handleDeleteShop(shop.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                     </div>
+                   ))}
+                   {appShops.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">No custom shops added yet.</p>}
+                 </div>
+               </Card>
+
+               <Card className="p-6">
+                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><UserPlus className="w-5 h-5 text-emerald-500" /> Manage Users & Roles</h2>
+                 <form onSubmit={handleAddUser} className="space-y-4 mb-6 border-b border-slate-100 dark:border-slate-700 pb-6">
+                   <Input label="Username" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} placeholder="staff_01" required />
+                   <Input label="Password" type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
+                   <div className="mb-4">
+                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Access Role</label>
+                     <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-all font-medium">
+                       <option value="staff">Staff (Limited Access)</option>
+                       <option value="admin">Admin (Full Access)</option>
+                     </select>
+                   </div>
+
+                   {newUser.role === 'staff' && (
+                     <div className="mb-6 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Staff Permissions (On/Off)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {Object.keys(PERMISSION_LABELS).map(key => (
+                            <label key={key} className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={newUser.permissions[key]} 
+                                onChange={() => handlePermissionToggle(key)}
+                                className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600"
+                              />
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{PERMISSION_LABELS[key]}</span>
+                            </label>
+                          ))}
+                        </div>
+                     </div>
+                   )}
+
+                   <Button type="submit" className="w-full h-11 text-base font-bold bg-emerald-600 hover:bg-emerald-700">Create User</Button>
+                 </form>
+                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                   {appUsers.map((user, i) => (
+                     <div key={user.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                       <div>
+                         <span className="font-extrabold text-slate-800 dark:text-slate-200 block mb-1">{user.username}</span>
+                         <div className="flex flex-wrap items-center gap-2 mt-1">
+                           <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600'}`}>
+                             {user.role}
+                           </span>
+                           {user.role === 'staff' && user.permissions && (
+                             <div className="flex gap-1 flex-wrap">
+                               {Object.entries(user.permissions).filter(([k, v]) => v).map(([k]) => (
+                                 <span key={k} className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">{k}</span>
+                               ))}
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                       <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                     </div>
+                   ))}
+                   {appUsers.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">Only fallback admin exists. Create users here.</p>}
+                 </div>
+               </Card>
+             </div>
+          );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
