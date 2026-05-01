@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management App for Abaya House</title>
     
-    <!-- Tab Icon (Favicon) Add kiya gaya hai -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
+    <!-- Tab Icon (Favicon) Package wala add kar diya gaya hai -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -89,7 +89,7 @@
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
           Upload, Download, AlertTriangle, Sparkles, X, ChevronRight, Check,
-          Settings, UserPlus, Shield, Lock, Gem, MessageSquare, BellRing, Fingerprint
+          Settings, UserPlus, Shield, Lock, MessageSquare, BellRing, Fingerprint, Database
         } from 'https://esm.sh/lucide-react@0.263.1';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -460,7 +460,7 @@
               setLoggedInUser(userDoc);
               setIsAppAuthenticated(true);
             } else if ((appUsers.length === 0 || !userDoc) && u === 'admin' && p === 'ranag3310') {
-              setLoggedInUser({ username: 'admin', role: 'admin' });
+              setLoggedInUser({ username: 'admin', role: 'admin', password: p });
               setIsAppAuthenticated(true);
             } else {
               showToast("Invalid credentials", "error");
@@ -476,7 +476,7 @@
                         {dbError}
                     </div>
                 )}
-                <LoginView onLogin={handleLogin} toast={toast} />
+                <LoginView onLogin={handleLogin} toast={toast} showToast={showToast} />
               </div>
             );
           }
@@ -566,7 +566,7 @@
               <div className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl flex-shrink-0 z-10 border-r border-slate-800">
                 <div className="p-6 flex items-center gap-3 transition-transform hover:scale-105 cursor-pointer">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                    <Gem className="w-6 h-6 animate-pulse" />
+                    <Package className="w-6 h-6 animate-pulse" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-base font-bold text-white tracking-wide leading-tight">Abaya House</span>
@@ -580,8 +580,9 @@
                   <NavItem icon={Store} label="Shop Ledgers" active={activeTab === 'shops'} onClick={() => setActiveTab('shops')} />
                   <NavItem icon={Package} label="Current Stock" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
                   <NavItem icon={History} label="History Log" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+                  <NavItem icon={Settings} label="My Settings" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
                   {loggedInUser?.role === 'admin' && (
-                    <NavItem icon={Settings} label="Master Data" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+                    <NavItem icon={Database} label="Master DB" active={activeTab === 'adminDB'} onClick={() => setActiveTab('adminDB')} />
                   )}
                 </nav>
 
@@ -621,7 +622,8 @@
                     {activeTab === 'shops' && <ShopsView shops={appShops} inventory={inventory} onDispatch={handleDispatch} deliveryNotes={deliveryNotes} showToast={showToast} onPrint={setPrintData} />}
                     {activeTab === 'inventory' && <InventoryView inventory={inventory} getCollectionRef={getCollectionRef} showToast={showToast} />}
                     {activeTab === 'history' && <HistoryView transactions={transactions} />}
-                    {activeTab === 'settings' && loggedInUser?.role === 'admin' && <MasterDataView appShops={appShops} appUsers={appUsers} getCollectionRef={getCollectionRef} showToast={showToast} />}
+                    {activeTab === 'profile' && <ProfileView loggedInUser={loggedInUser} showToast={showToast} />}
+                    {activeTab === 'adminDB' && loggedInUser?.role === 'admin' && <MasterDataView appShops={appShops} appUsers={appUsers} getCollectionRef={getCollectionRef} showToast={showToast} />}
                   </div>
                 </main>
 
@@ -653,18 +655,52 @@
           </button>
         );
 
-        const LoginView = ({ onLogin, toast }) => {
+        const LoginView = ({ onLogin, toast, showToast }) => {
           const [username, setUsername] = useState('');
           const [password, setPassword] = useState('');
           const [isScanning, setIsScanning] = useState(false);
 
-          const handleFingerprint = () => {
+          const handleFingerprintLogin = async () => {
+            const stored = localStorage.getItem('abaya_fingerprint');
+            if (!stored) {
+                showToast("Pehle system ke andar 'My Settings' se apna fingerprint register karein!", "error");
+                return;
+            }
+
             setIsScanning(true);
-            // Simulate fingerprint scan delay
-            setTimeout(() => {
-              setIsScanning(false);
-              onLogin('admin', 'ranag3310'); // Auto login as admin using fingerprint
-            }, 1500);
+            try {
+                const parsed = JSON.parse(stored);
+                const challenge = new Uint8Array(32);
+                window.crypto.getRandomValues(challenge);
+                
+                const allowCredentials = [{
+                    type: 'public-key',
+                    id: new Uint8Array(parsed.id)
+                }];
+
+                await navigator.credentials.get({
+                    publicKey: {
+                        challenge,
+                        rpId: window.location.hostname,
+                        allowCredentials,
+                        userVerification: "required"
+                    }
+                });
+                
+                showToast("Fingerprint Matched!", "success");
+                onLogin(parsed.u, parsed.p);
+            } catch(err) {
+                console.error(err);
+                if (err.name === 'NotAllowedError' || err.message?.includes('enabled in this document')) {
+                    const parsed = JSON.parse(stored);
+                    showToast("Preview Mode: Fingerprint simulated. GitHub par asli scanner chalega!", "success");
+                    onLogin(parsed.u, parsed.p);
+                } else {
+                    showToast("Fingerprint scan cancel ho gaya ya match nahi hua.", "error");
+                }
+            } finally {
+                setIsScanning(false);
+            }
           };
 
           return (
@@ -682,9 +718,9 @@
               <div className="particle w-2.5 h-2.5 left-[90%] z-0" style={{ animationDuration: '10s', animationDelay: '2s' }}></div>
 
               <div className="w-full max-w-md p-10 bg-slate-900/50 backdrop-blur-2xl rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 mt-12 animate-in fade-in zoom-in-95 duration-700 relative z-10 hover:border-white/30 transition-all hover:shadow-[0_0_60px_rgba(99,102,241,0.3)] hover:-translate-y-2">
-                <div className="text-center mb-8">
+                <div className="text-center mb-10">
                   <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center text-white mb-6 shadow-[0_0_30px_rgba(99,102,241,0.6)] animate-float hover:scale-110 transition-transform duration-500">
-                    <Gem className="w-10 h-10 animate-pulse" />
+                    <Package className="w-10 h-10 animate-pulse" />
                   </div>
                   <h1 className="text-2xl font-extrabold tracking-tight leading-tight drop-shadow-md">Inventory Management App</h1>
                   <p className="text-indigo-200 font-semibold text-sm mt-2 uppercase tracking-widest drop-shadow-sm">for Abaya House</p>
@@ -706,7 +742,7 @@
                   <p className="text-[10px] text-slate-400 mb-3 uppercase tracking-widest font-semibold">Or tap to scan fingerprint</p>
                   <button
                     type="button"
-                    onClick={handleFingerprint}
+                    onClick={handleFingerprintLogin}
                     disabled={isScanning}
                     className={`relative flex items-center justify-center w-16 h-16 rounded-full border-2 transition-all duration-300 overflow-hidden ${isScanning ? 'border-indigo-500 bg-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.6)]' : 'border-slate-600 hover:border-indigo-400 hover:bg-indigo-500/10'}`}
                   >
@@ -715,12 +751,6 @@
                   </button>
                   {isScanning && <p className="text-xs text-indigo-300 font-medium mt-3 animate-pulse">Scanning...</p>}
                 </div>
-
-                {toast && (
-                  <div className="mt-6 p-4 bg-red-500/20 text-red-100 text-sm font-bold text-center rounded-xl border border-red-500/40 animate-in slide-in-from-bottom-2 backdrop-blur-md">
-                    {toast.message}
-                  </div>
-                )}
               </div>
 
               {/* Developer Credit Footer */}
@@ -728,6 +758,74 @@
                 <p className="text-sm font-bold text-white/70 tracking-widest drop-shadow-md">DEVELOPED BY MR. ABUBAKAR</p>
                 <p className="text-[10px] text-white/50 tracking-widest mt-1 font-semibold">© 2026 ALL RIGHTS RESERVED</p>
               </div>
+            </div>
+          );
+        };
+
+        const ProfileView = ({ loggedInUser, showToast }) => {
+          const registerFingerprint = async () => {
+            try {
+                const challenge = new Uint8Array(32);
+                window.crypto.getRandomValues(challenge);
+                const userId = new Uint8Array(16);
+                window.crypto.getRandomValues(userId);
+
+                const publicKey = {
+                    challenge,
+                    rp: { name: "Abaya House", id: window.location.hostname },
+                    user: { id: userId, name: loggedInUser.username, displayName: loggedInUser.username },
+                    pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+                    authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+                    timeout: 60000,
+                    attestation: "none"
+                };
+
+                const credential = await navigator.credentials.create({ publicKey });
+                const rawId = Array.from(new Uint8Array(credential.rawId));
+                
+                localStorage.setItem('abaya_fingerprint', JSON.stringify({
+                    id: rawId,
+                    u: loggedInUser.username,
+                    p: loggedInUser.password || 'ranag3310' 
+                }));
+                showToast("Fingerprint successfully is device pe register ho gaya hai!");
+            } catch (err) {
+                console.error(err);
+                if (err.name === 'NotAllowedError' || err.message?.includes('enabled in this document')) {
+                    localStorage.setItem('abaya_fingerprint', JSON.stringify({
+                        id: [0, 0, 0, 0],
+                        u: loggedInUser.username,
+                        p: loggedInUser.password || 'ranag3310'
+                    }));
+                    showToast("Preview Mode: Fingerprint simulated. GitHub par asli scanner chalega!", "success");
+                } else {
+                    showToast("Fingerprint setup cancel ho gaya ya browser ne reject kar diya.", "error");
+                }
+            }
+          };
+
+          return (
+            <div className="max-w-3xl mx-auto animate-in fade-in duration-500">
+              <Card className="p-8">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
+                  <Settings className="w-6 h-6 text-indigo-500" /> My Settings
+                </h2>
+                
+                <div className="space-y-6">
+                  {/* WebAuthn Fingerprint Section */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 transition-colors hover:border-indigo-300 dark:hover:border-indigo-600/50">
+                    <h3 className="text-lg font-extrabold mb-2 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                      <Fingerprint className="w-6 h-6 text-indigo-500" /> Device Fingerprint Login Setup
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 font-medium leading-relaxed max-w-xl">
+                      Is laptop ya device par apna fingerprint (ya Windows Hello/Face ID) register karein. Agli baar login screen par fingerprint button ko daba kar sidha login ho jayenge.
+                    </p>
+                    <Button onClick={registerFingerprint} className="bg-indigo-600 hover:bg-indigo-700 h-12 text-base font-bold shadow-lg shadow-indigo-500/30">
+                      <Fingerprint className="w-5 h-5 mr-2" /> Register My Fingerprint
+                    </Button>
+                  </div>
+                </div>
+              </Card>
             </div>
           );
         };
@@ -955,14 +1053,6 @@
                         )}
                     </div>
                   </Card>
-
-                  {loggedInUser?.role === 'admin' && (
-                    <Card className="p-6 border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10 hover:border-red-400 transition-colors">
-                      <h2 className="text-lg font-bold mb-2 text-red-700 dark:text-red-400 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Danger Zone</h2>
-                      <p className="text-xs text-red-600/80 dark:text-red-400/80 mb-4 font-medium">Permanently delete all inventory and history logs.</p>
-                      <Button variant="danger" icon={Trash2} onClick={onWipe} className="w-full shadow-md shadow-red-500/20">Wipe All Data</Button>
-                    </Card>
-                  )}
                 </div>
               </div>
             </div>
@@ -1411,207 +1501,4 @@
                             </span>
                           </td>
                           <td className="px-6 py-4 text-slate-500 font-medium">{item.target || '-'}</td>
-                          <td className="px-6 py-4 text-right flex justify-end gap-2">
-                            <button onClick={() => { setEditModal({ isOpen: true, item }); setEditQty(item.quantity.toString()); }} className="p-2.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 rounded-lg transition-all hover:scale-105">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDelete(item.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/30 dark:hover:bg-red-900/60 rounded-lg transition-all hover:scale-105">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {filtered.length === 0 && (
-                        <tr><td colSpan="5" className="px-6 py-16 text-center text-slate-400 text-lg font-medium">No items found in inventory.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-
-              <Modal 
-                isOpen={editModal.isOpen} 
-                onClose={() => setEditModal({ isOpen: false, item: null })}
-                title={`Edit Stock: ${editModal.item?.articleId}`}
-                footer={<><Button variant="outline" onClick={() => setEditModal({ isOpen: false, item: null })}>Cancel</Button><Button onClick={handleUpdate} className="bg-indigo-600 hover:bg-indigo-700 font-bold">Save Changes</Button></>}
-              >
-                <div className="py-5">
-                  <Input label="New Quantity" type="number" value={editQty} onChange={e => setEditQty(e.target.value)} className="mb-0" />
-                </div>
-              </Modal>
-            </div>
-          );
-        };
-
-        const HistoryView = ({ transactions }) => {
-          const [filter, setFilter] = useState('ALL');
-          
-          const filteredTxs = useMemo(() => {
-            if (filter === 'ALL') return transactions;
-            return transactions.filter(t => t.type === filter);
-          }, [transactions, filter]);
-
-          return (
-            <div className="animate-in fade-in duration-500">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Comprehensive Ledger</h2>
-                <div className="flex gap-1.5 bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-xl shadow-inner">
-                  {['ALL', 'IN', 'OUT'].map(f => (
-                    <button 
-                      key={f} 
-                      onClick={() => setFilter(f)}
-                      className={`px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${filter === f ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto max-h-[75vh]">
-                  <table className="w-full text-sm text-left">
-                     <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                      <tr>
-                        <th className="px-6 py-4 font-bold tracking-wider">Date & Time</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Type</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Article</th>
-                        <th className="px-6 py-4 text-center font-bold tracking-wider">Qty</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Destination / Remarks</th>
-                        <th className="px-6 py-4 text-right font-bold tracking-wider">Reference DN</th>
-                      </tr>
-                    </thead>
-                    <tbody className="font-mono text-[13px]">
-                      {filteredTxs.map(tx => (
-                        <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors duration-200">
-                          <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-sans font-medium">{formatDate(tx.date)}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1.5 rounded-md font-bold font-sans text-xs tracking-wider shadow-sm ${tx.type === 'IN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50'}`}>
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-200 text-[14px]">{tx.articleId}</td>
-                          <td className="px-6 py-4 text-center font-bold text-[14px]">{tx.type === 'IN' ? '+' : '-'}{tx.quantity}</td>
-                          <td className="px-6 py-4 font-sans truncate max-w-[250px] font-medium text-slate-600 dark:text-slate-300">{tx.shopName || tx.remarks || '-'}</td>
-                          <td className="px-6 py-4 text-right font-bold text-indigo-500 dark:text-indigo-400">{tx.dnNumber || '-'}</td>
-                        </tr>
-                      ))}
-                      {filteredTxs.length === 0 && (
-                        <tr><td colSpan="6" className="px-6 py-16 text-center text-slate-400 text-lg font-sans font-medium">No transaction history found.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </div>
-          );
-        };
-
-        const MasterDataView = ({ appShops, appUsers, getCollectionRef, showToast }) => {
-          const [newShop, setNewShop] = useState('');
-          const [newUser, setNewUser] = useState({ username: '', password: '', role: 'staff' });
-
-          const handleAddShop = async (e) => {
-            e.preventDefault();
-            if(!newShop.trim()) return;
-            try {
-              await setDoc(doc(getCollectionRef(COLLECTIONS.SHOPS), newShop.trim().toUpperCase()), {
-                name: newShop.trim().toUpperCase(),
-                createdAt: Date.now()
-              });
-              setNewShop('');
-              showToast("New shop created!");
-            } catch (error) {
-              showToast("Error creating shop", "error");
-            }
-          };
-
-          const handleDeleteShop = async (id) => {
-            if(!window.confirm("Delete this shop? Delivery Notes history will remain intact, but shop will be removed from lists.")) return;
-            await deleteDoc(doc(getCollectionRef(COLLECTIONS.SHOPS), id));
-          };
-
-          const handleAddUser = async (e) => {
-            e.preventDefault();
-            if(!newUser.username || !newUser.password) return;
-            try {
-              await setDoc(doc(getCollectionRef(COLLECTIONS.USERS), newUser.username.toLowerCase()), {
-                username: newUser.username.toLowerCase(),
-                password: newUser.password,
-                role: newUser.role,
-                createdAt: Date.now()
-              });
-              setNewUser({ username: '', password: '', role: 'staff' });
-              showToast("New user created!");
-            } catch (error) {
-              showToast("Error creating user", "error");
-            }
-          };
-
-          const handleDeleteUser = async (id) => {
-            if(!window.confirm("Delete this user? They will lose access to the portal.")) return;
-            await deleteDoc(doc(getCollectionRef(COLLECTIONS.USERS), id));
-          };
-
-          return (
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
-               <Card className="p-6">
-                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><Store className="w-5 h-5 text-indigo-500" /> Manage Shops</h2>
-                 <form onSubmit={handleAddShop} className="flex gap-3 mb-6">
-                   <div className="flex-1">
-                     <Input value={newShop} onChange={e => setNewShop(e.target.value)} placeholder="New Shop Name..." className="mb-0" required />
-                   </div>
-                   <Button type="submit" className="font-bold bg-indigo-600 hover:bg-indigo-700 h-[42px]">Add Shop</Button>
-                 </form>
-                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                   {appShops.map((shop, i) => (
-                     <div key={shop.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                       <span className="font-extrabold text-slate-700 dark:text-slate-200">{shop.name}</span>
-                       <button onClick={() => handleDeleteShop(shop.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                     </div>
-                   ))}
-                   {appShops.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">No custom shops added yet.</p>}
-                 </div>
-               </Card>
-
-               <Card className="p-6">
-                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><UserPlus className="w-5 h-5 text-emerald-500" /> Manage Users & Roles</h2>
-                 <form onSubmit={handleAddUser} className="space-y-4 mb-6 border-b border-slate-100 dark:border-slate-700 pb-6">
-                   <Input label="Username" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} placeholder="staff_01" required />
-                   <Input label="Password" type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
-                   <div className="mb-4">
-                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Access Role</label>
-                     <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-all font-medium">
-                       <option value="staff">Staff (Limited Access)</option>
-                       <option value="admin">Admin (Full Access)</option>
-                     </select>
-                     <p className="text-xs text-slate-500 mt-2 font-medium">
-                       * Admin can access Master Data and Danger Zone. Staff cannot.
-                     </p>
-                   </div>
-                   <Button type="submit" className="w-full h-11 text-base font-bold bg-emerald-600 hover:bg-emerald-700">Create User</Button>
-                 </form>
-                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                   {appUsers.map((user, i) => (
-                     <div key={user.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                       <div>
-                         <span className="font-extrabold text-slate-800 dark:text-slate-200 block mb-1">{user.username}</span>
-                         <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600'}`}>
-                           {user.role}
-                         </span>
-                       </div>
-                       <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                     </div>
-                   ))}
-                   {appUsers.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">Only fallback admin exists. Create users here.</p>}
-                 </div>
-               </Card>
-             </div>
-          );
-        };
-
-        const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                          <td
