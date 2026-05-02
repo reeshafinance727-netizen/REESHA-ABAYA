@@ -85,7 +85,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18';
         import { createRoot } from 'https://esm.sh/react-dom@18/client';
-        // FIXED: Updated lucide-react version to latest stable so new icons like ScanBarcode don't cause white screen errors
+        // FIKS: A don ɔpdet lucide-react so dat di nyu aikon dɛn nɔ go mek di skrin blang
         import { 
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
@@ -112,7 +112,7 @@
             messagingSenderId: "291827178527",
             appId: "1:291827178527:web:ca2f84956e3b9a48c4492a" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
         };
-        const GEMINI_API_KEY = "AIzaSyCkhf0artinvhsSnYXwg5sXg3ONuaPs1iQ"; // AI Tips ke liye yahan key dalein
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye yahan key dalein
         // ============================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
@@ -1764,7 +1764,8 @@
                               <Edit className="w-4 h-4" />
                             </button>
                             <button onClick={() => handleDelete(item.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/30 dark:hover:bg-red-900/60 rounded-lg transition-all hover:scale-105">
-                              <Trash className="w-4 h-4" />
+                              {/* FIKS: A don ɔpdet Trash to Trash2 */}
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
                         </tr>
