@@ -72,6 +72,96 @@
             50% { top: 100%; }
         }
 
+        /* --- NEW: 3D Premium Theme Custom CSS --- */
+        .theme-3d .rounded-xl, .theme-3d .rounded-2xl {
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), inset 0 2px 2px rgba(255, 255, 255, 0.8) !important;
+            border-top: 1px solid rgba(255,255,255,0.8) !important;
+            border-bottom: 2px solid rgba(0,0,0,0.1) !important;
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .dark .theme-3d .rounded-xl, .dark .theme-3d .rounded-2xl {
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+            border-top: 1px solid rgba(255,255,255,0.1) !important;
+            border-bottom: 2px solid rgba(0,0,0,0.4) !important;
+        }
+        .theme-3d button.bg-indigo-600 {
+            box-shadow: 0 4px 0 #4338ca, 0 8px 15px rgba(0,0,0,0.2) !important;
+            transform: translateY(-2px);
+            border: none !important;
+        }
+        .theme-3d button.bg-indigo-600:active {
+            box-shadow: 0 0px 0 #4338ca, 0 2px 5px rgba(0,0,0,0.2) !important;
+            transform: translateY(2px);
+        }
+
+        /* --- NEW: Glassmorphism Theme Custom CSS --- */
+        .theme-glass {
+            background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-attachment: fixed !important;
+        }
+        .dark.theme-glass {
+            background-image: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2560&auto=format&fit=crop') !important;
+        }
+        .theme-glass .bg-white, .theme-glass .bg-slate-900, .theme-glass .bg-slate-800, .theme-glass .bg-slate-50 {
+            background-color: transparent !important;
+        }
+        .theme-glass .rounded-xl, .theme-glass .rounded-2xl {
+            background: rgba(255, 255, 255, 0.2) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
+        }
+        .dark .theme-glass .rounded-xl, .dark .theme-glass .rounded-2xl {
+            background: rgba(15, 23, 42, 0.4) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+        }
+        .theme-glass header {
+            background: rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(24px) !important;
+            border-bottom: 1px solid rgba(255,255,255,0.3) !important;
+        }
+        .dark .theme-glass header {
+            background: rgba(15, 23, 42, 0.5) !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        .theme-glass aside, .theme-glass .w-64 { 
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(24px) !important;
+            border-right: 1px solid rgba(255,255,255,0.3) !important;
+        }
+        .dark .theme-glass aside, .dark .theme-glass .w-64 {
+            background: rgba(15, 23, 42, 0.5) !important;
+            border-right: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        .theme-glass input, .theme-glass select {
+            background: rgba(255,255,255,0.4) !important;
+            border: 1px solid rgba(255,255,255,0.6) !important;
+            color: #1e293b !important;
+        }
+        .dark .theme-glass input, .dark .theme-glass select {
+            background: rgba(0,0,0,0.3) !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            color: white !important;
+        }
+        .theme-glass table th {
+            background: rgba(255,255,255,0.3) !important;
+            backdrop-filter: blur(10px);
+        }
+        .dark .theme-glass table th {
+            background: rgba(0,0,0,0.4) !important;
+        }
+        .theme-glass table tr {
+            border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+        }
+        .dark .theme-glass table tr {
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
+
         @media print {
             body, html { background: white !important; margin: 0; padding: 0; height: auto; }
             .print-hide { display: none !important; }
@@ -85,13 +175,13 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18';
         import { createRoot } from 'https://esm.sh/react-dom@18/client';
-        // FIKS: A don ɔpdet lucide-react so dat di nyu aikon dɛn nɔ go mek di skrin blang
+        // FIKS: Added Palette, Layers for new themes
         import { 
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
           Upload, Download, AlertTriangle, Sparkles, X, ChevronRight, Check,
           Settings, UserPlus, Shield, Lock, MessageSquare, BellRing, Fingerprint, Database,
-          PieChart as LucidePieChart, BarChart3, ScanBarcode, QrCode
+          PieChart as LucidePieChart, BarChart3, ScanBarcode, QrCode, Palette, Layers
         } from 'https://esm.sh/lucide-react@0.344.0';
 
         import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'https://esm.sh/recharts@2.12.0?deps=react@18,react-dom@18';
@@ -271,7 +361,6 @@
 
         // --- Main App Component ---
         function App() {
-          // SOLVED: Load authentication state from localStorage to prevent logout on refresh
           const [isAppAuthenticated, setIsAppAuthenticated] = useState(() => {
             return !!localStorage.getItem('abaya_logged_in_user');
           });
@@ -288,6 +377,15 @@
             }
             return 'dark';
           });
+          
+          // NEW: Theme UI State for Premium Look
+          const [uiTheme, setUiTheme] = useState(() => {
+            if (typeof window !== 'undefined' && localStorage) {
+               return localStorage.getItem('abaya_ui_theme') || 'default';
+            }
+            return 'default';
+          });
+
           const [activeTab, setActiveTab] = useState('dashboard');
           
           const [inventory, setInventory] = useState([]);
@@ -323,6 +421,13 @@
                 if (typeof window !== 'undefined' && localStorage) localStorage.setItem('abaya_theme', 'light');
             }
           }, [theme]);
+
+          // NEW: Save UI Theme
+          useEffect(() => {
+            if (typeof window !== 'undefined' && localStorage) {
+               localStorage.setItem('abaya_ui_theme', uiTheme);
+            }
+          }, [uiTheme]);
 
           useEffect(() => {
             const initAuth = async () => {
@@ -520,7 +625,7 @@
             const userDoc = appUsers.find(user => user.username === u && user.password === p);
             if (userDoc) {
               setLoggedInUser(userDoc);
-              localStorage.setItem('abaya_logged_in_user', JSON.stringify(userDoc)); // Save user session
+              localStorage.setItem('abaya_logged_in_user', JSON.stringify(userDoc)); 
               if (userDoc.role === 'staff' && userDoc.permissions) {
                  const firstAllowed = ['dashboard', 'add', 'shops', 'inventory', 'history'].find(k => userDoc.permissions[k]);
                  if (firstAllowed) setActiveTab(firstAllowed);
@@ -532,7 +637,7 @@
             } else if ((appUsers.length === 0 || !userDoc) && u === 'admin' && p === 'ranag3310') {
               const adminUser = { username: 'admin', role: 'admin', password: p };
               setLoggedInUser(adminUser);
-              localStorage.setItem('abaya_logged_in_user', JSON.stringify(adminUser)); // Save admin session
+              localStorage.setItem('abaya_logged_in_user', JSON.stringify(adminUser)); 
               setActiveTab('dashboard');
               setIsAppAuthenticated(true);
             } else {
@@ -543,7 +648,7 @@
           const handleLogout = () => {
              setIsAppAuthenticated(false);
              setLoggedInUser(null);
-             localStorage.removeItem('abaya_logged_in_user'); // Clear session on logout
+             localStorage.removeItem('abaya_logged_in_user'); 
           };
 
           if (!isAppAuthenticated) {
@@ -720,8 +825,11 @@
             );
           }
 
+          // NEW: Apply UI Theme to wrapper
+          const themeClass = uiTheme === '3d' ? 'theme-3d' : uiTheme === 'glass' ? 'theme-glass' : '';
+
           return (
-            <div className={`flex h-screen w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300 relative`}>
+            <div className={`flex h-screen w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300 relative ${themeClass}`}>
               
               {/* Global Error Banner (Inside App) */}
               {dbError && (
@@ -789,7 +897,7 @@
                     {activeTab === 'shops' && <ShopsView shops={appShops} inventory={inventory} onDispatch={handleDispatch} deliveryNotes={deliveryNotes} showToast={showToast} onPrint={setPrintData} />}
                     {activeTab === 'inventory' && <InventoryView inventory={inventory} getCollectionRef={getCollectionRef} showToast={showToast} onPrint={(data) => setPrintReport({ type: 'INVENTORY', data })} />}
                     {activeTab === 'history' && <HistoryView transactions={transactions} onPrint={(data) => setPrintReport({ type: 'HISTORY', data })} />}
-                    {activeTab === 'profile' && <ProfileView loggedInUser={loggedInUser} showToast={showToast} />}
+                    {activeTab === 'profile' && <ProfileView loggedInUser={loggedInUser} showToast={showToast} uiTheme={uiTheme} setUiTheme={setUiTheme} />}
                     {activeTab === 'adminDB' && loggedInUser?.role === 'admin' && <MasterDataView appShops={appShops} appUsers={appUsers} getCollectionRef={getCollectionRef} showToast={showToast} />}
                   </div>
                 </main>
@@ -929,7 +1037,7 @@
           );
         };
 
-        const ProfileView = ({ loggedInUser, showToast }) => {
+        const ProfileView = ({ loggedInUser, showToast, uiTheme, setUiTheme }) => {
           const registerFingerprint = async () => {
             try {
                 const challenge = new Uint8Array(32);
@@ -972,7 +1080,7 @@
           };
 
           return (
-            <div className="max-w-3xl mx-auto animate-in fade-in duration-500">
+            <div className="max-w-3xl mx-auto animate-in fade-in duration-500 space-y-6">
               <Card className="p-8">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
                   <Settings className="w-6 h-6 text-indigo-500" /> My Settings
@@ -990,6 +1098,44 @@
                     <Button onClick={registerFingerprint} className="bg-indigo-600 hover:bg-indigo-700 h-12 text-base font-bold shadow-lg shadow-indigo-500/30">
                       <Fingerprint className="w-5 h-5 mr-2" /> Register My Fingerprint
                     </Button>
+                  </div>
+                </div>
+              </Card>
+
+              {/* NEW: Custom Themes Section */}
+              <Card className="p-8">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
+                  <Palette className="w-6 h-6 text-indigo-500" /> Premium 3D & Custom Themes
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Default */}
+                  <div 
+                    onClick={() => { setUiTheme('default'); showToast('Standard Flat Theme Applied'); }}
+                    className={`p-5 rounded-2xl cursor-pointer border-2 transition-all text-center flex flex-col items-center justify-center ${uiTheme === 'default' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}
+                  >
+                    <LayoutDashboard className={`w-8 h-8 mb-3 ${uiTheme === 'default' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200">Standard Flat</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Clean & Minimal</p>
+                  </div>
+
+                  {/* 3D Premium */}
+                  <div 
+                    onClick={() => { setUiTheme('3d'); showToast('3D Elevated Theme Applied'); }}
+                    className={`p-5 rounded-2xl cursor-pointer border-2 transition-all text-center flex flex-col items-center justify-center ${uiTheme === '3d' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}
+                  >
+                    <Layers className={`w-8 h-8 mb-3 ${uiTheme === '3d' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200">3D Elevated</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Pop-out Depth & Shadows</p>
+                  </div>
+
+                  {/* Glassmorphism */}
+                  <div 
+                    onClick={() => { setUiTheme('glass'); showToast('Glassmorphism Theme Applied'); }}
+                    className={`p-5 rounded-2xl cursor-pointer border-2 transition-all text-center flex flex-col items-center justify-center ${uiTheme === 'glass' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}
+                  >
+                    <Sparkles className={`w-8 h-8 mb-3 ${uiTheme === 'glass' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200">Glassmorphism</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Translucent Holographic</p>
                   </div>
                 </div>
               </Card>
