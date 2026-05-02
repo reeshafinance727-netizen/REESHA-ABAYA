@@ -5,16 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management App for Abaya House</title>
     
-    <!-- Tab Icon (Favicon) Package wala add kar diya gaya hai -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
     </script>
 
-    <!-- Babel for React JSX Compilation in Browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -25,7 +22,6 @@
         .dark ::-webkit-scrollbar-thumb { background: #334155; }
         .uppercase-input { text-transform: uppercase; }
         
-        /* Premium Animations */
         @keyframes float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
@@ -65,14 +61,13 @@
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
-        /* Fingerprint Scanner Animation */
         @keyframes scan {
             0%, 100% { top: 0%; opacity: 0; }
             10%, 90% { opacity: 1; }
             50% { top: 100%; }
         }
 
-        /* --- NEW: 3D Premium Theme Custom CSS --- */
+        /* 3D Premium Theme */
         .theme-3d .rounded-xl, .theme-3d .rounded-2xl {
             box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), inset 0 2px 2px rgba(255, 255, 255, 0.8) !important;
             border-top: 1px solid rgba(255,255,255,0.8) !important;
@@ -95,7 +90,7 @@
             transform: translateY(2px);
         }
 
-        /* --- NEW: Glassmorphism Theme Custom CSS --- */
+        /* Glassmorphism Theme */
         .theme-glass {
             background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop') !important;
             background-size: cover !important;
@@ -175,7 +170,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18';
         import { createRoot } from 'https://esm.sh/react-dom@18/client';
-        // FIKS: Added Palette, Layers for new themes
+        // FIXED: Using latest version to ensure all icons (Trash2, QrCode) load correctly
         import { 
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
@@ -315,7 +310,7 @@
           return data;
         };
 
-        // --- NEW: Barcode Scanner Modal Component ---
+        // --- Barcode Scanner Modal Component ---
         const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
           useEffect(() => {
             if (!isOpen) return;
@@ -325,7 +320,7 @@
             const handleKeyDown = (e) => {
               const currentTime = Date.now();
               if (currentTime - lastKeyTime > 100) {
-                barcode = ''; // Reset if typing is too slow (not a scanner)
+                barcode = '';
               }
               lastKeyTime = currentTime;
 
@@ -378,7 +373,6 @@
             return 'dark';
           });
           
-          // NEW: Theme UI State for Premium Look
           const [uiTheme, setUiTheme] = useState(() => {
             if (typeof window !== 'undefined' && localStorage) {
                return localStorage.getItem('abaya_ui_theme') || 'default';
@@ -411,7 +405,6 @@
             return loggedInUser.permissions[tabId];
           };
 
-          // Update Document Theme & Save to LocalStorage
           useEffect(() => {
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');
@@ -422,7 +415,6 @@
             }
           }, [theme]);
 
-          // NEW: Save UI Theme
           useEffect(() => {
             if (typeof window !== 'undefined' && localStorage) {
                localStorage.setItem('abaya_ui_theme', uiTheme);
@@ -825,7 +817,7 @@
             );
           }
 
-          // NEW: Apply UI Theme to wrapper
+          // Apply UI Theme
           const themeClass = uiTheme === '3d' ? 'theme-3d' : uiTheme === 'glass' ? 'theme-glass' : '';
 
           return (
@@ -1102,7 +1094,7 @@
                 </div>
               </Card>
 
-              {/* NEW: Custom Themes Section */}
+              {/* Custom Themes Section */}
               <Card className="p-8">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
                   <Palette className="w-6 h-6 text-indigo-500" /> Premium 3D & Custom Themes
@@ -1210,8 +1202,7 @@
                   prompt = `You are an expert retail business analyst for 'Abaya House'. Based on this inventory summary: "${summary}", give 3 very short, actionable business tips in Roman Urdu. Format as a bulleted list. Keep it concise.`;
               }
 
-              // FIXED: Updated to 1.5 flash which is widely available and stable
-              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1345,7 +1336,7 @@
                     </div>
                   </Card>
 
-                  {/* NEW LOW STOCK ALERTS SECTION */}
+                  {/* LOW STOCK ALERTS SECTION */}
                   <Card className="p-6 flex flex-col border-amber-200 dark:border-amber-800/60 bg-amber-50/30 dark:bg-amber-900/10">
                     <div className="flex justify-between items-center mb-4 border-b border-amber-100 dark:border-amber-800/50 pb-3">
                       <h2 className="text-lg font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -1910,7 +1901,7 @@
                               <Edit className="w-4 h-4" />
                             </button>
                             <button onClick={() => handleDelete(item.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/30 dark:hover:bg-red-900/60 rounded-lg transition-all hover:scale-105">
-                              {/* FIKS: A don ɔpdet Trash to Trash2 */}
+                              {/* FIX: Using Trash2 specifically to avoid blank screen error */}
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
@@ -2035,7 +2026,7 @@
             permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false }
           });
 
-          // PERMISSION LABELS (FIXED)
+          // PERMISSION LABELS
           const PERMISSION_LABELS = {
             dashboard: 'Dashboard (View Stats)',
             add: 'Master Intake (Add Stock)',
