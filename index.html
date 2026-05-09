@@ -275,7 +275,7 @@
             messagingSenderId: "291827178527",
             appId: "1:291827178527:web:ca2f84956e3b9a48c4492a" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
         };
-        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye yahan key dalein (Agar Github par chalana hai)
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye yahan key dalein
         // ============================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
@@ -789,12 +789,16 @@
               return;
             }
 
-            const userDoc = appUsers.find(user => user.username.toLowerCase() === u.toLowerCase() && user.password === p);
+            const userDoc = appUsers.find(user => user.username.toLowerCase() === u.toLowerCase());
             
             if (userDoc) {
+              if (userDoc.password !== p) {
+                  return showToast("Invalid password!", "error");
+              }
               if (userDoc.role !== type) {
                   return showToast(`Ghalat Tab! Please use the ${userDoc.role.toUpperCase()} login tab.`, "error");
               }
+              
               setLoggedInUser(userDoc);
               localStorage.setItem('abaya_logged_in_user', JSON.stringify(userDoc)); 
               if (userDoc.role === 'staff' && userDoc.permissions) {
@@ -805,12 +809,16 @@
                  setActiveTab('dashboard');
               }
               setIsAppAuthenticated(true);
-            } else if (appUsers.length === 0 && u === 'admin' && p === 'ranag3310' && type === 'admin') {
+              
+            } else if (u === 'admin' && p === 'ranag3310' && type === 'admin') {
               const adminUser = { username: 'admin', role: 'admin', password: p };
               setLoggedInUser(adminUser);
               localStorage.setItem('abaya_logged_in_user', JSON.stringify(adminUser)); 
               setActiveTab('dashboard');
               setIsAppAuthenticated(true);
+            } else if (u === 'admin' && type === 'staff') {
+              // FIXED: Added clear instruction for tab mismatch
+              showToast("Bhai 'admin' ke liye upar se 'Admin Login' tab select karein!", "error");
             } else {
               showToast("Invalid credentials ya aap ghalat tab se login kar rahe hain.", "error");
             }
@@ -1452,9 +1460,8 @@
           const [aiLoading, setAiLoading] = useState(false);
 
           const handleGetAiTip = async (isCustom) => {
-            // FIXED: Automatically setting key from environment/runtime logic, or ignoring error if testing in Canvas
-            // Canvas proxy requires gemini-2.5-flash-preview-09-2025 with empty API key
-            const apiKey = ""; 
+            // Updated to handle API key securely for both Canvas and GitHub
+            const apiKeyToUse = GEMINI_API_KEY === "YOUR_GEMINI_API_KEY" ? "" : GEMINI_API_KEY; 
 
             if (isCustom && !aiQuery.trim()) {
                 showToast("Please enter a question for AI.", "error");
@@ -1472,9 +1479,7 @@
                   prompt = `You are an expert retail business analyst for 'Abaya House'. Based on this inventory summary: "${summary}", give 3 very short, actionable business tips in Roman Urdu. Format as a bulleted list. Keep it concise.`;
               }
 
-              // Agar aap GitHub pe chala rahe hain toh "YOUR_API_KEY" ki jagah apni key dalein aur yahan ${apiKey} ki jagah wo variable pass karein. 
-              // Canvas mein yeh automatically "" (khali) par chalegi.
-              const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKeyToUse}`;
 
               const response = await fetch(url, {
                 method: 'POST',
@@ -2299,7 +2304,7 @@
           const PERMISSION_LABELS = {
             dashboard: 'Dashboard (View Stats)',
             add: 'Master Intake (Add Stock)',
-            shops: 'Shops (Dispatch)', // FIXED: Changed Shop Ledgers to Shops
+            shops: 'Shops (Dispatch)',
             inventory: 'Current Stock (Edit/Delete)',
             history: 'History Log',
             map3d: '3D Warehouse Map'
