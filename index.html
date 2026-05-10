@@ -274,9 +274,9 @@
             projectId: "reesha-abaya",
             storageBucket: "reesha-abaya.firebasestorage.app",
             messagingSenderId: "291827178527",
-            appId: "YAHAN_APNA_APP_ID_DALEIN" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
+            appId: "1:291827178527:web:abcdef1234567890" // <-- BHAI YAHAN APNA ASLI FIREBASE APP ID DALEIN!
         };
-        const GEMINI_API_KEY = "1:291827178527:web:ca2f84956e3b9a48c4492a"; // AI Tips ke liye yahan key dalein
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye yahan key dalein
         // ============================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
@@ -287,16 +287,14 @@
             const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
             const config = configStr ? JSON.parse(configStr) : fallbackConfig;
             
-            if(config.appId !== "YAHAN_APNA_APP_ID_DALEIN" && config.apiKey !== "YOUR_API_KEY") {
-                app = initializeApp(config);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                
-                if (db) {
-                    enableIndexedDbPersistence(db).catch((err) => {
-                        console.warn("Offline Persistence Error: ", err.code);
-                    });
-                }
+            app = initializeApp(config);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            
+            if (db) {
+                enableIndexedDbPersistence(db).catch((err) => {
+                    console.warn("Offline Persistence Error: ", err.code);
+                });
             }
         } catch (e) {
             console.error("Firebase initialization failed", e);
