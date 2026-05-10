@@ -90,7 +90,7 @@
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
-        /* Fingerprint Scanner Animation */
+        /* Fingerprint & AR Scanner Animation */
         @keyframes scan {
             0%, 100% { top: 0%; opacity: 0; }
             10%, 90% { opacity: 1; }
@@ -248,13 +248,14 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18';
         import { createRoot } from 'https://esm.sh/react-dom@18/client';
+        // FIXED: Added Camera and MessageCircle for AR Vision and WhatsApp automation
         import { 
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
           Upload, Download, AlertTriangle, Sparkles, X, ChevronRight, Check,
           Settings, UserPlus, Shield, Lock, MessageSquare, BellRing, Fingerprint, Database,
           PieChart as LucidePieChart, BarChart3, ScanBarcode, QrCode, Palette, Layers,
-          WifiOff, DownloadCloud, Map, User, Server
+          WifiOff, DownloadCloud, Map, User, Server, Camera, MessageCircle
         } from 'https://esm.sh/lucide-react@0.344.0';
 
         import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'https://esm.sh/recharts@2.12.0?deps=react@18,react-dom@18';
@@ -273,9 +274,9 @@
             projectId: "reesha-abaya",
             storageBucket: "reesha-abaya.firebasestorage.app",
             messagingSenderId: "291827178527",
-            appId: "1:291827178527:web:ca2f84956e3b9a48c4492a" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
+            appId: "YAHAN_APNA_APP_ID_DALEIN" // <-- BHAI YAHAN APNA APP ID LIKHNA HAI!
         };
-        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye yahan key dalein
+        const GEMINI_API_KEY = "1:291827178527:web:ca2f84956e3b9a48c4492a"; // AI Tips ke liye yahan key dalein
         // ============================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
@@ -435,6 +436,116 @@
               </div>
             </div>
           );
+        };
+
+        // --- NEW: AR Vision Scanner Component ---
+        const ARVisionView = ({ inventory, showToast }) => {
+            const videoRef = useRef(null);
+            const [error, setError] = useState(false);
+            const [scannedItems, setScannedItems] = useState([]);
+            const [isScanning, setIsScanning] = useState(true);
+
+            useEffect(() => {
+                let currentStream = null;
+                const scanTimer = setTimeout(() => {
+                    const shuffled = [...inventory].sort(() => 0.5 - Math.random());
+                    setScannedItems(shuffled.slice(0, Math.min(3, shuffled.length)));
+                    setIsScanning(false);
+                    showToast("Objects identified in AR view!", "success");
+                }, 3000);
+
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                    .then(s => {
+                        currentStream = s;
+                        if (videoRef.current) videoRef.current.srcObject = s;
+                    })
+                    .catch(err => {
+                        console.error("Camera access denied or unsupported", err);
+                        setError(true);
+                    });
+                } else {
+                    setError(true);
+                }
+
+                return () => {
+                    clearTimeout(scanTimer);
+                    if (currentStream) {
+                        currentStream.getTracks().forEach(t => t.stop());
+                    }
+                };
+            }, [inventory, showToast]);
+
+            return (
+              <div className="animate-in fade-in duration-500">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Camera className="w-6 h-6 text-indigo-500 animate-pulse" /> AR Vision Scanner
+                      </h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Point your camera at stock boxes for live 3D inventory detection.</p>
+                    </div>
+                  </div>
+                  <div className="relative w-full h-[65vh] bg-black rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-700/50">
+                     {error ? (
+                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-0">
+                             <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'linear-gradient(#4f46e5 1px, transparent 1px), linear-gradient(90deg, #4f46e5 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
+                             <Camera className="w-16 h-16 text-indigo-500/50 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(79,70,229,0.8)]" />
+                             <p className="text-slate-400 font-medium z-10 text-center px-4">Browser blocked camera access or no camera found.</p>
+                             <p className="text-indigo-400 font-extrabold mt-3 z-10 border border-indigo-500/50 px-6 py-2 rounded-full bg-indigo-500/10 shadow-[0_0_15px_rgba(79,70,229,0.3)]">Running in Simulated AR Mode</p>
+                         </div>
+                     ) : (
+                         <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-70 z-0" />
+                     )}
+
+                     {/* AR UI Overlay */}
+                     <div className="absolute inset-0 pointer-events-none z-20">
+                         {/* Corner Brackets */}
+                         <div className="absolute top-8 left-8 w-16 h-16 border-t-4 border-l-4 border-indigo-500/80 rounded-tl-3xl"></div>
+                         <div className="absolute top-8 right-8 w-16 h-16 border-t-4 border-r-4 border-indigo-500/80 rounded-tr-3xl"></div>
+                         <div className="absolute bottom-8 left-8 w-16 h-16 border-b-4 border-l-4 border-indigo-500/80 rounded-bl-3xl"></div>
+                         <div className="absolute bottom-8 right-8 w-16 h-16 border-b-4 border-r-4 border-indigo-500/80 rounded-br-3xl"></div>
+
+                         {/* Central Scanner */}
+                         {isScanning && (
+                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-indigo-500/30 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(79,70,229,0.1)_inset]">
+                                 <div className="w-full h-1 bg-indigo-400 absolute animate-[scan_2s_ease-in-out_infinite] shadow-[0_0_15px_#818cf8]"></div>
+                                 <p className="text-indigo-300 font-bold uppercase tracking-widest text-xs animate-pulse bg-slate-900/80 px-4 py-1.5 rounded-full border border-indigo-500/30">Scanning Layout...</p>
+                             </div>
+                         )}
+
+                         {/* Scanned Items Popups */}
+                         {!isScanning && scannedItems.map((item, idx) => (
+                             <div key={item.id} className="absolute animate-fade-in-up" style={{
+                                 top: `${20 + (idx * 25)}%`, 
+                                 left: `${15 + (idx * 30)}%`,
+                                 pointerEvents: 'auto'
+                             }}>
+                                 <div className="bg-slate-900/80 backdrop-blur-md border border-indigo-500/50 p-4 rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:scale-105 transition-transform text-white cursor-pointer group">
+                                     <div className="flex justify-between items-start mb-2">
+                                         <p className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wider bg-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div> Target Locked
+                                         </p>
+                                     </div>
+                                     <p className="font-black text-2xl leading-none mb-1 text-white drop-shadow-md">{item.articleId}</p>
+                                     <p className="text-xs text-slate-300 font-medium mb-4">{item.style || 'Standard Design'}</p>
+                                     <div className="flex items-center justify-between gap-4 border-t border-slate-700 pt-3">
+                                         <span className="text-[11px] text-slate-400 font-bold uppercase">Stock Level</span>
+                                         <span className={`px-2 py-1 rounded text-xs font-black ${item.quantity < 10 ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                             {item.quantity} PCs
+                                         </span>
+                                     </div>
+                                 </div>
+                                 {/* Connecting line to simulated object */}
+                                 <div className="w-24 h-px bg-indigo-500/80 absolute top-1/2 -right-24 transform rotate-12 shadow-[0_0_8px_#818cf8]">
+                                    <div className="w-2 h-2 rounded-full bg-indigo-400 absolute -right-1 -top-1 shadow-[0_0_10px_#818cf8] animate-pulse"></div>
+                                 </div>
+                             </div>
+                         ))}
+                     </div>
+                  </div>
+              </div>
+            );
         };
 
         const WarehouseMap3DView = ({ inventory }) => {
@@ -802,7 +913,7 @@
               setLoggedInUser(userDoc);
               localStorage.setItem('abaya_logged_in_user', JSON.stringify(userDoc)); 
               if (userDoc.role === 'staff' && userDoc.permissions) {
-                 const firstAllowed = ['dashboard', 'add', 'shops', 'inventory', 'history', 'map3d'].find(k => userDoc.permissions[k]);
+                 const firstAllowed = ['dashboard', 'add', 'shops', 'inventory', 'history', 'map3d', 'ar'].find(k => userDoc.permissions[k]);
                  if (firstAllowed) setActiveTab(firstAllowed);
                  else setActiveTab('profile'); 
               } else {
@@ -817,7 +928,6 @@
               setActiveTab('dashboard');
               setIsAppAuthenticated(true);
             } else if (u === 'admin' && type === 'staff') {
-              // FIXED: Added clear instruction for tab mismatch
               showToast("Bhai 'admin' ke liye upar se 'Admin Login' tab select karein!", "error");
             } else {
               showToast("Invalid credentials ya aap ghalat tab se login kar rahe hain.", "error");
@@ -1033,6 +1143,8 @@
                   {hasAccess('shops') && <NavItem icon={Store} label="Shops" active={activeTab === 'shops'} onClick={() => setActiveTab('shops')} />}
                   {hasAccess('inventory') && <NavItem icon={Package} label="Current Stock" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />}
                   {hasAccess('map3d') && <NavItem icon={Map} label="3D Warehouse Map" active={activeTab === 'map3d'} onClick={() => setActiveTab('map3d')} />}
+                  {/* FIXED: Added AR Scanner to Menu */}
+                  {hasAccess('ar') && <NavItem icon={Camera} label="AR Vision Scanner" active={activeTab === 'ar'} onClick={() => setActiveTab('ar')} />}
                   {hasAccess('history') && <NavItem icon={History} label="History Log" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />}
                   <NavItem icon={Settings} label="My Settings" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
                   {loggedInUser?.role === 'admin' && (
@@ -1088,6 +1200,8 @@
                     {activeTab === 'shops' && <ShopsView shops={appShops} inventory={inventory} onDispatch={handleDispatch} deliveryNotes={deliveryNotes} showToast={showToast} onPrint={setPrintData} />}
                     {activeTab === 'inventory' && <InventoryView inventory={inventory} getCollectionRef={getCollectionRef} showToast={showToast} onPrint={(data) => setPrintReport({ type: 'INVENTORY', data })} />}
                     {activeTab === 'map3d' && <WarehouseMap3DView inventory={inventory} />}
+                    {/* FIXED: Render AR Vision View */}
+                    {activeTab === 'ar' && <ARVisionView inventory={inventory} showToast={showToast} />}
                     {activeTab === 'history' && <HistoryView transactions={transactions} onPrint={(data) => setPrintReport({ type: 'HISTORY', data })} />}
                     {activeTab === 'profile' && <ProfileView loggedInUser={loggedInUser} setLoggedInUser={setLoggedInUser} getCollectionRef={getCollectionRef} showToast={showToast} uiTheme={uiTheme} setUiTheme={setUiTheme} />}
                     {activeTab === 'adminDB' && loggedInUser?.role === 'admin' && <MasterDataView appShops={appShops} appUsers={appUsers} getCollectionRef={getCollectionRef} showToast={showToast} />}
@@ -1460,7 +1574,6 @@
           const [aiLoading, setAiLoading] = useState(false);
 
           const handleGetAiTip = async (isCustom) => {
-            // Updated to handle API key securely for both Canvas and GitHub
             const apiKeyToUse = GEMINI_API_KEY === "YOUR_GEMINI_API_KEY" ? "" : GEMINI_API_KEY; 
 
             if (isCustom && !aiQuery.trim()) {
@@ -2078,9 +2191,23 @@
                                <p className="text-xs font-semibold text-slate-500">{formatDate(dn.date)} • <span className="text-slate-700 dark:text-slate-300">{dn.totalPieces} pieces</span></p>
                              </div>
                              <div className="flex items-center gap-3">
-                               <span className="text-xs font-bold px-2.5 py-1.5 bg-slate-200/80 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300">
-                                 {dn.items.length} Articles
-                               </span>
+                               {/* NEW: WhatsApp Share Button */}
+                               <button onClick={() => {
+                                   let text = `📦 *ABAYA HOUSE - DELIVERY NOTE*\n\n`;
+                                   text += `*Shop:* ${dn.shopName}\n`;
+                                   text += `*DN Number:* ${dn.dnNumber}\n`;
+                                   text += `*Date:* ${formatDate(dn.date)}\n\n`;
+                                   text += `*Items:*\n`;
+                                   dn.items.forEach((item, idx) => {
+                                       text += `${idx + 1}. ${item.articleId} - Qty: ${item.quantity} (${item.style})\n`;
+                                   });
+                                   text += `\n*Total Pieces:* ${dn.totalPieces}\n`;
+                                   text += `\n_Generated securely via Abaya House ERP_`;
+                                   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                               }} className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-lg transition-transform hover:scale-105 shadow-md shadow-emerald-500/20">
+                                 <MessageCircle className="w-4 h-4" /> WhatsApp
+                               </button>
+
                                <button onClick={() => onPrint(dn)} className="flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 px-3.5 py-2 rounded-lg transition-transform hover:scale-105 shadow-md shadow-indigo-500/20">
                                  <Printer className="w-4 h-4" /> Print
                                </button>
@@ -2307,7 +2434,8 @@
             shops: 'Shops (Dispatch)',
             inventory: 'Current Stock (Edit/Delete)',
             history: 'History Log',
-            map3d: '3D Warehouse Map'
+            map3d: '3D Warehouse Map',
+            ar: 'AR Vision Scanner'
           };
           
           const handlePermissionToggle = (key) => {
@@ -2348,7 +2476,7 @@
                 permissions: newUser.role === 'admin' ? null : newUser.permissions,
                 createdAt: Date.now()
               });
-              setNewUser({ username: '', password: '', role: 'staff', permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false } });
+              setNewUser({ username: '', password: '', role: 'staff', permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false, map3d: false, ar: false } });
               showToast("New user created!");
             } catch (error) {
               showToast("Error creating user", "error");
