@@ -248,7 +248,6 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18';
         import { createRoot } from 'https://esm.sh/react-dom@18/client';
-        // FIXED: Added Camera and MessageCircle for AR Vision and WhatsApp automation
         import { 
           LayoutDashboard, PlusCircle, Store, Package, History, 
           LogOut, Moon, Sun, Trash2, Edit, Printer, FileText, 
@@ -268,24 +267,29 @@
         // 🔴 FIREBASE CONFIGURATION 🔴
         // ============================================================================
         const fallbackConfig = {
-            apiKey: "AIzaSyAj6yKpU9sD-Wmiftp6A68DzAWAZ2mamx4",
+            apiKey: "AIzaSyAlxAMwmLUh7bW3pSq4G2-uDe3Ac3K-jZc", // FIXED: Updated from your screenshot
             authDomain: "reesha-abaya.firebaseapp.com",
             databaseURL: "https://reesha-abaya-default-rtdb.firebaseio.com",
             projectId: "reesha-abaya",
             storageBucket: "reesha-abaya.firebasestorage.app",
             messagingSenderId: "291827178527",
-            appId: "1:291827178527:web:abcdef1234567890" // <-- BHAI YAHAN APNA ASLI FIREBASE APP ID DALEIN!
+            appId: "1:291827178527:web:ca2f84956e3b9a48c4492a" // <-- BHAI YAHAN APNA ASLI FIREBASE APP ID DALEIN!
         };
-        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // AI Tips ke liye yahan key dalein
+        const GEMINI_API_KEY = ""; // AI Tips ke liye yahan key dalein (Canvas me zaroorat nahi)
         // ============================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'abaya-house-mgr-v1';
         const sanitizedAppId = appId.replace(/\//g, '_');
 
-        let app, auth, db;
+        let app, auth, db, initErrorMsg = "";
         try {
             const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
             const config = configStr ? JSON.parse(configStr) : fallbackConfig;
+            
+            // FIXED: Failsafe to catch missing App ID before crashing Firebase
+            if (config.appId === "YAHAN_APNA_APP_ID_PASTE_KAREIN") {
+                throw new Error("Aapne Line 161 par apna asli Firebase 'appId' paste nahi kiya!");
+            }
             
             app = initializeApp(config);
             auth = getAuth(app);
@@ -298,6 +302,7 @@
             }
         } catch (e) {
             console.error("Firebase initialization failed", e);
+            initErrorMsg = e.message;
         }
 
         const COLLECTIONS = {
@@ -436,7 +441,6 @@
           );
         };
 
-        // --- NEW: AR Vision Scanner Component ---
         const ARVisionView = ({ inventory, showToast }) => {
             const videoRef = useRef(null);
             const [error, setError] = useState(false);
@@ -708,7 +712,7 @@
           useEffect(() => {
             const initAuth = async () => {
               if (!auth) {
-                setDbError("Firebase App Initialize nahi hui. Kya aapne sahi se Config paste kiya tha aur apna appId daala hai?");
+                setDbError(`Firebase App Initialize nahi hui.\nError: ${initErrorMsg}\n\nHal (Fix): Apne code ki Line 161 par apna asli Firebase 'appId' (jaise 1:291827...) paste karein aur GitHub par save (commit) karein!`);
                 return;
               }
               try {
@@ -2189,7 +2193,6 @@
                                <p className="text-xs font-semibold text-slate-500">{formatDate(dn.date)} • <span className="text-slate-700 dark:text-slate-300">{dn.totalPieces} pieces</span></p>
                              </div>
                              <div className="flex items-center gap-3">
-                               {/* NEW: WhatsApp Share Button */}
                                <button onClick={() => {
                                    let text = `📦 *ABAYA HOUSE - DELIVERY NOTE*\n\n`;
                                    text += `*Shop:* ${dn.shopName}\n`;
@@ -2283,357 +2286,4 @@
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map(item => (
-                        <tr key={item.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors duration-200">
-                          <td className="px-6 py-4 font-extrabold text-slate-900 dark:text-slate-100 text-base">{item.articleId}</td>
-                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium">{item.style || '-'}</td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`px-4 py-1.5 rounded-lg font-bold text-sm shadow-sm ${item.quantity < 10 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-200 dark:border-red-800' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600'}`}>
-                              {item.quantity}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-slate-500 font-medium">{item.target || '-'}</td>
-                          <td className="px-6 py-4 text-right flex justify-end gap-2">
-                            <button onClick={() => setQrModalItem(item)} title="Generate QR Code" className="p-2.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/60 rounded-lg transition-all hover:scale-105">
-                              <QrCode className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => { setEditModal({ isOpen: true, item }); setEditQty(item.quantity.toString()); }} className="p-2.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 rounded-lg transition-all hover:scale-105">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDelete(item.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/30 dark:hover:bg-red-900/60 rounded-lg transition-all hover:scale-105">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {filtered.length === 0 && (
-                        <tr><td colSpan="5" className="px-6 py-16 text-center text-slate-400 text-lg font-medium">No items found in inventory.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-
-              <Modal 
-                isOpen={editModal.isOpen} 
-                onClose={() => setEditModal({ isOpen: false, item: null })}
-                title={`Edit Stock: ${editModal.item?.articleId}`}
-                footer={<><Button variant="outline" onClick={() => setEditModal({ isOpen: false, item: null })}>Cancel</Button><Button onClick={handleUpdate} className="bg-indigo-600 hover:bg-indigo-700 font-bold">Save Changes</Button></>}
-              >
-                <div className="py-5">
-                  <Input label="New Quantity" type="number" value={editQty} onChange={e => setEditQty(e.target.value)} className="mb-0" />
-                </div>
-              </Modal>
-
-              <Modal
-                isOpen={!!qrModalItem}
-                onClose={() => setQrModalItem(null)}
-                title="Product QR Code Label"
-              >
-                <div className="flex flex-col items-center justify-center py-8">
-                  <div className="p-4 bg-white rounded-xl shadow-inner border border-slate-200 dark:border-none mb-4">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrModalItem?.articleId}&color=4f46e5`} 
-                      alt="QR Code" 
-                      className="w-[150px] h-[150px]"
-                    />
-                  </div>
-                  <p className="font-extrabold text-2xl tracking-widest text-slate-800 dark:text-white">{qrModalItem?.articleId}</p>
-                  <p className="text-sm text-slate-500 font-medium mb-6">{qrModalItem?.style || 'Standard'}</p>
-                  <Button onClick={() => { window.focus(); window.print(); }} icon={Printer} className="w-full">Print Label</Button>
-                </div>
-              </Modal>
-            </div>
-          );
-        };
-
-        const HistoryView = ({ transactions, onPrint }) => {
-          const [filter, setFilter] = useState('ALL');
-          
-          const filteredTxs = useMemo(() => {
-            if (filter === 'ALL') return transactions;
-            return transactions.filter(t => t.type === filter);
-          }, [transactions, filter]);
-
-          return (
-            <div className="animate-in fade-in duration-500">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Comprehensive Ledger</h2>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex gap-1.5 bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-xl shadow-inner">
-                    {['ALL', 'IN', 'OUT'].map(f => (
-                      <button 
-                        key={f} 
-                        onClick={() => setFilter(f)}
-                        className={`px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${filter === f ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                  <Button onClick={() => onPrint(filteredTxs)} variant="outline" className="h-[42px] bg-white dark:bg-slate-800 border-indigo-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700">
-                    <Printer className="w-4 h-4 mr-2" /> Save PDF
-                  </Button>
-                </div>
-              </div>
-
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto max-h-[75vh]">
-                  <table className="w-full text-sm text-left">
-                     <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                      <tr>
-                        <th className="px-6 py-4 font-bold tracking-wider">Date & Time</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Type</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Article</th>
-                        <th className="px-6 py-4 text-center font-bold tracking-wider">Qty</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Destination / Remarks</th>
-                        <th className="px-6 py-4 text-right font-bold tracking-wider">Reference DN</th>
-                      </tr>
-                    </thead>
-                    <tbody className="font-mono text-[13px]">
-                      {filteredTxs.map(tx => (
-                        <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors duration-200">
-                          <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-sans font-medium">{formatDate(tx.date)}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1.5 rounded-md font-bold font-sans text-xs tracking-wider shadow-sm ${tx.type === 'IN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50'}`}>
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-200 text-[14px]">{tx.articleId}</td>
-                          <td className="px-6 py-4 text-center font-bold text-[14px]">{tx.type === 'IN' ? '+' : '-'}{tx.quantity}</td>
-                          <td className="px-6 py-4 font-sans truncate max-w-[250px] font-medium text-slate-600 dark:text-slate-300">{tx.shopName || tx.remarks || '-'}</td>
-                          <td className="px-6 py-4 text-right font-bold text-indigo-500 dark:text-indigo-400">{tx.dnNumber || '-'}</td>
-                        </tr>
-                      ))}
-                      {filteredTxs.length === 0 && (
-                        <tr><td colSpan="6" className="px-6 py-16 text-center text-slate-400 text-lg font-sans font-medium">No transaction history found.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </div>
-          );
-        };
-
-        const MasterDataView = ({ appShops, appUsers, getCollectionRef, showToast }) => {
-          const [newShop, setNewShop] = useState('');
-          const [editingUser, setEditingUser] = useState(null);
-          const [newUser, setNewUser] = useState({ 
-            username: '', 
-            password: '', 
-            role: 'staff',
-            permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false }
-          });
-
-          const PERMISSION_LABELS = {
-            dashboard: 'Dashboard (View Stats)',
-            add: 'Master Intake (Add Stock)',
-            shops: 'Shops (Dispatch)',
-            inventory: 'Current Stock (Edit/Delete)',
-            history: 'History Log',
-            map3d: '3D Warehouse Map',
-            ar: 'AR Vision Scanner'
-          };
-          
-          const handlePermissionToggle = (key) => {
-            setNewUser(prev => ({
-              ...prev,
-              permissions: { ...prev.permissions, [key]: !prev.permissions[key] }
-            }));
-          };
-
-          const handleAddShop = async (e) => {
-            e.preventDefault();
-            if(!newShop.trim()) return;
-            try {
-              await setDoc(doc(getCollectionRef(COLLECTIONS.SHOPS), newShop.trim().toUpperCase()), {
-                name: newShop.trim().toUpperCase(),
-                createdAt: Date.now()
-              });
-              setNewShop('');
-              showToast("New shop created!");
-            } catch (error) {
-              showToast("Error creating shop", "error");
-            }
-          };
-
-          const handleDeleteShop = async (id) => {
-            if(!window.confirm("Delete this shop? Delivery Notes history will remain intact, but shop will be removed from lists.")) return;
-            await deleteDoc(doc(getCollectionRef(COLLECTIONS.SHOPS), id));
-          };
-
-          const handleAddUser = async (e) => {
-            e.preventDefault();
-            if(!newUser.username || !newUser.password) return;
-            try {
-              await setDoc(doc(getCollectionRef(COLLECTIONS.USERS), newUser.username.toLowerCase()), {
-                username: newUser.username.toLowerCase(),
-                password: newUser.password,
-                role: newUser.role,
-                permissions: newUser.role === 'admin' ? null : newUser.permissions,
-                createdAt: Date.now()
-              });
-              setNewUser({ username: '', password: '', role: 'staff', permissions: { dashboard: true, add: false, shops: false, inventory: false, history: false, map3d: false, ar: false } });
-              showToast("New user created!");
-            } catch (error) {
-              showToast("Error creating user", "error");
-            }
-          };
-
-          const handleUpdateUser = async () => {
-            if (!editingUser) return;
-            try {
-                await updateDoc(doc(getCollectionRef(COLLECTIONS.USERS), editingUser.id || editingUser.username.toLowerCase()), {
-                    role: editingUser.role,
-                    permissions: editingUser.role === 'admin' ? null : editingUser.permissions,
-                    updatedAt: Date.now()
-                });
-                showToast("User limits updated successfully!");
-                setEditingUser(null);
-            } catch (e) {
-                console.error(e);
-                showToast("Error updating user", "error");
-            }
-          };
-
-          const handleDeleteUser = async (id) => {
-            if(!window.confirm("Delete this user? They will lose access to the portal.")) return;
-            await deleteDoc(doc(getCollectionRef(COLLECTIONS.USERS), id));
-          };
-
-          return (
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
-               <Card className="p-6">
-                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><Store className="w-5 h-5 text-indigo-500" /> Manage Shops</h2>
-                 <form onSubmit={handleAddShop} className="flex gap-3 mb-6">
-                   <div className="flex-1">
-                     <Input value={newShop} onChange={e => setNewShop(e.target.value)} placeholder="New Shop Name..." className="mb-0" required />
-                   </div>
-                   <Button type="submit" className="font-bold bg-indigo-600 hover:bg-indigo-700 h-[42px]">Add Shop</Button>
-                 </form>
-                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                   {appShops.map((shop, i) => (
-                     <div key={shop.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                       <span className="font-extrabold text-slate-700 dark:text-slate-200">{shop.name}</span>
-                       <button onClick={() => handleDeleteShop(shop.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                     </div>
-                   ))}
-                   {appShops.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">No custom shops added yet.</p>}
-                 </div>
-               </Card>
-
-               <Card className="p-6">
-                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><UserPlus className="w-5 h-5 text-emerald-500" /> Manage Users & Roles</h2>
-                 <form onSubmit={handleAddUser} className="space-y-4 mb-6 border-b border-slate-100 dark:border-slate-700 pb-6">
-                   <Input label="Username" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} placeholder="staff_01" required />
-                   <Input label="Password" type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
-                   <div className="mb-4">
-                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Access Role</label>
-                     <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-all font-medium">
-                       <option value="staff">Staff (Limited Access)</option>
-                       <option value="admin">Admin (Full Access)</option>
-                     </select>
-                   </div>
-
-                   {newUser.role === 'staff' && (
-                     <div className="mb-6 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Staff Permissions (On/Off)</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {Object.keys(PERMISSION_LABELS).map(key => (
-                            <label key={key} className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                checked={newUser.permissions[key]} 
-                                onChange={() => handlePermissionToggle(key)}
-                                className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600"
-                              />
-                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{PERMISSION_LABELS[key]}</span>
-                            </label>
-                          ))}
-                        </div>
-                     </div>
-                   )}
-
-                   <Button type="submit" className="w-full h-11 text-base font-bold bg-emerald-600 hover:bg-emerald-700">Create User</Button>
-                 </form>
-                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                   {appUsers.map((user, i) => (
-                     <div key={user.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600/50 transition-colors animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                       <div>
-                         <span className="font-extrabold text-slate-800 dark:text-slate-200 block mb-1">{user.username}</span>
-                         <div className="flex flex-wrap items-center gap-2 mt-1">
-                           <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600'}`}>
-                             {user.role}
-                           </span>
-                           {user.role === 'staff' && user.permissions && (
-                             <div className="flex gap-1 flex-wrap">
-                               {Object.entries(user.permissions).filter(([k, v]) => v).map(([k]) => (
-                                 <span key={k} className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">{k}</span>
-                               ))}
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <button onClick={() => setEditingUser(user)} className="text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 p-2 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
-                         <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                       </div>
-                     </div>
-                   ))}
-                   {appUsers.length === 0 && <p className="text-sm text-slate-500 font-medium text-center py-4">Only fallback admin exists. Create users here.</p>}
-                 </div>
-               </Card>
-
-               <Modal 
-                  isOpen={!!editingUser} 
-                  onClose={() => setEditingUser(null)}
-                  title={`Edit User: ${editingUser?.username}`}
-                  footer={
-                      <>
-                          <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
-                          <Button onClick={handleUpdateUser} className="bg-indigo-600 hover:bg-indigo-700 font-bold">Save Changes</Button>
-                      </>
-                  }
-              >
-                  <div className="py-4">
-                      <div className="mb-6">
-                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Access Role</label>
-                          <select value={editingUser?.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-all font-medium">
-                              <option value="staff">Staff (Limited Access)</option>
-                              <option value="admin">Admin (Full Access)</option>
-                          </select>
-                      </div>
-                      {editingUser?.role === 'staff' && (
-                          <div className="p-4 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Staff Permissions (On/Off)</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {Object.keys(PERMISSION_LABELS).map(key => (
-                                  <label key={key} className="flex items-center gap-2 cursor-pointer">
-                                      <input 
-                                      type="checkbox" 
-                                      checked={(editingUser.permissions && editingUser.permissions[key]) || false} 
-                                      onChange={() => setEditingUser({
-                                          ...editingUser,
-                                          permissions: { ...editingUser.permissions, [key]: !(editingUser.permissions && editingUser.permissions[key]) }
-                                      })}
-                                      className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600"
-                                      />
-                                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{PERMISSION_LABELS[key]}</span>
-                                  </label>
-                                  ))}
-                              </div>
-                          </div>
-                      )}
-                  </div>
-              </Modal>
-
-             </div>
-          );
-        };
-
-        const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                      {
